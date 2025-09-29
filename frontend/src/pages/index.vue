@@ -9,7 +9,12 @@
           </v-col>
 
           <v-col cols="12" md="6" class="d-flex">
-            <OnlinePlayersCard :total="total" :players="players" class="flex-fill" />
+            <OnlinePlayersCard 
+              :total="total" 
+              :players="players" 
+              :playersWithSessions="playersWithSessions" 
+              class="flex-fill" 
+            />
           </v-col>
         </v-row>
 
@@ -35,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { io } from "socket.io-client";
 
 // Import components
@@ -48,12 +53,14 @@ import ToastNotifications from "../components/ToastNotifications.vue";
 // Reactive data
 const total = ref(0);
 const players = ref([]);
+const playersWithSessions = ref([]);
 const previousPlayers = ref([]);
 const logs = ref([]);
 const toasts = ref([]);
 const skillsData = ref([]);
 let toastId = 0;
 let initialized = false; // track if we already handled the first update
+let sessionUpdateTimer = null;
 
 // Update page title based on player count
 watch(
@@ -75,10 +82,43 @@ function addToast(message, color = "primary") {
   }, 3200);
 }
 
+// Session duration update timer
+function startSessionUpdateTimer() {
+  sessionUpdateTimer = setInterval(() => {
+    // Update session durations locally to keep them current
+    playersWithSessions.value = playersWithSessions.value.map(player => {
+      if (player.loginTime) {
+        const durationMs = Date.now() - player.loginTime;
+        const minutes = Math.floor(durationMs / (1000 * 60));
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        
+        const sessionDurationFormatted = hours > 0 
+          ? `${hours}h ${remainingMinutes}m` 
+          : `${remainingMinutes}m`;
+          
+        return {
+          ...player,
+          sessionDuration: durationMs,
+          sessionDurationFormatted
+        };
+      }
+      return player;
+    });
+  }, 60000); // Update every minute
+}
+
+function stopSessionUpdateTimer() {
+  if (sessionUpdateTimer) {
+    clearInterval(sessionUpdateTimer);
+    sessionUpdateTimer = null;
+  }
+}
+
 // Socket.IO connection and event handlers
 onMounted(() => {
-  const socket = io("https://minestatus-backend.cle4r.my.id"); // set base URL manually
-  // const socket = io("http://127.0.0.1:3000"); // set base URL manually
+  // const socket = io("https://minestatus-backend.cle4r.my.id"); // set base URL manually
+  const socket = io("http://127.0.0.1:3000"); // set base URL manually
 
   // Mock data for testing - 7 online players
   // setTimeout(() => {
@@ -94,6 +134,11 @@ onMounted(() => {
     const newPlayers = data.players;
     const oldPlayers = previousPlayers.value;
 
+    // Update session data if available
+    if (data.playersWithSessions) {
+      playersWithSessions.value = data.playersWithSessions;
+    }
+
     // only show toasts after first initialization
     if (initialized) {
       const joined = newPlayers.filter((p) => !oldPlayers.includes(p));
@@ -107,6 +152,11 @@ onMounted(() => {
 
     players.value = newPlayers;
     previousPlayers.value = [...newPlayers];
+
+    // Start timer to update session durations every minute
+    if (!sessionUpdateTimer && playersWithSessions.value.length > 0) {
+      startSessionUpdateTimer();
+    }
   });
 
   socket.on("skills:update", (data) => {
@@ -128,6 +178,11 @@ onMounted(() => {
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
+  });
+  
+  // Cleanup on component unmount
+  onBeforeUnmount(() => {
+    stopSessionUpdateTimer();
   });
 });
 </script>

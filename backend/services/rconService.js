@@ -1,9 +1,11 @@
 const { Rcon } = require("rcon-client");
+const sessionService = require('./sessionService');
 
 class RconService {
   constructor() {
     this.rcon = null;
     this.rconConnected = false;
+    this.lastPlayerList = []; // Track previous player list for session tracking
   }
 
   async connect() {
@@ -41,23 +43,30 @@ class RconService {
   async getPlayers() {
     if (!this.rconConnected) {
       await this.connect();
-      if (!this.rconConnected) return { total: 0, players: [] };
+      if (!this.rconConnected) return { total: 0, players: [], playersWithSessions: [] };
     }
 
     try {
       const response = await this.rcon.send("list");
       const match = response.match(/There are (\d+) of a max of \d+ players online: ?(.*)?/);
 
-      if (!match) return { total: 0, players: [] };
+      if (!match) return { total: 0, players: [], playersWithSessions: [] };
 
       const total = parseInt(match[1], 10);
       const players = match[2] ? match[2].split(", ").filter((p) => p) : [];
 
-      return { total, players };
+      // Update session tracking
+      sessionService.updatePlayers(players, this.lastPlayerList);
+      this.lastPlayerList = [...players]; // Update last known player list
+
+      // Get players with session information
+      const playersWithSessions = sessionService.getPlayersWithSessions(players);
+
+      return { total, players, playersWithSessions };
     } catch (err) {
       console.error("RCON send error:", err);
       this.rconConnected = false;
-      return { total: 0, players: [] };
+      return { total: 0, players: [], playersWithSessions: [] };
     }
   }
 }

@@ -1,13 +1,37 @@
 <template>
-  <v-card>
+  <v-card class="online-players-card d-flex flex-column">
     <v-card-title> Online Players: {{ total }} </v-card-title>
-    <v-card-text>
-      <v-list class="player-list">
-        <v-list-item v-for="player in players" :key="player">
-          <v-avatar size="32" class="mr-2">
-            <img :src="`https://mc-heads.net/avatar/${player}/32`" />
-          </v-avatar>
-          {{ player }}
+    <v-card-text class="flex-grow-1 d-flex flex-column overflow-auto">
+      <v-list class="player-list flex-grow-1">
+        <v-list-item v-for="player in playersWithSessions" :key="player.name || player">
+          <template v-if="typeof player === 'object'">
+            <!-- Enhanced player display with session info -->
+            <div class="d-flex align-center justify-space-between w-100">
+              <div class="d-flex align-center">
+                <v-avatar size="32" class="mr-3">
+                  <img :src="`https://mc-heads.net/avatar/${player.name}/32`" />
+                </v-avatar>
+                <span class="player-name">{{ player.name }}</span>
+              </div>
+              <div class="session-info text-caption">
+                <v-chip
+                  size="x-small"
+                  color="primary"
+                  variant="outlined"
+                  class="session-chip"
+                >
+                  {{ player.sessionDurationFormatted }}
+                </v-chip>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <!-- Fallback for simple string players -->
+            <v-avatar size="32" class="mr-2">
+              <img :src="`https://mc-heads.net/avatar/${player}/32`" />
+            </v-avatar>
+            {{ player }}
+          </template>
         </v-list-item>
       </v-list>
     </v-card-text>
@@ -23,15 +47,36 @@ defineProps({
   players: {
     type: Array,
     default: () => []
+  },
+  playersWithSessions: {
+    type: Array,
+    default: () => []
   }
 });
 </script>
 
 <style scoped>
+.online-players-card {
+  max-height: 320px;
+}
+
 .player-list {
-  max-height: 168px; /* Fixed height for ~5 players (56px per item) */
-  overflow-y: auto;
   padding: 0;
+}
+
+.player-name {
+  font-weight: 500;
+}
+
+.session-info {
+  min-width: 60px;
+  text-align: right;
+}
+
+.session-chip {
+  font-size: 0.7rem !important;
+  height: 20px !important;
+  border-radius: 10px;
 }
 
 /* Custom scrollbar styling for dark theme */
