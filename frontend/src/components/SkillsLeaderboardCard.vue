@@ -2,16 +2,29 @@
   <v-card class="mb-4">
     <v-card-title>Player Skills Leaderboard</v-card-title>
     <v-card-text>
+      <!-- Search Bar -->
+      <v-text-field
+        v-model="search"
+        label="Search players..."
+        prepend-inner-icon="mdi-magnify"
+        variant="outlined"
+        hide-details
+        single-line
+        clearable
+        class="mb-4"
+      ></v-text-field>
+      
       <v-data-table
         :headers="skillHeaders"
         :items="skillsData"
-        :items-per-page="10"
+        :items-per-page="5"
         class="elevation-1"
         item-value="user_id"
         show-expand
         :expanded="expanded"
         @update:expanded="expanded = $event"
         @click:row="toggleExpand"
+        :search="search"
       >
         <template #item.User.user="{ item }">
           <div class="d-flex align-center">
@@ -122,6 +135,7 @@ defineProps({
 });
 
 const expanded = ref([]);
+const search = ref('');
 
 // Toggle expand/collapse when row is clicked
 function toggleExpand(event, { item }) {
@@ -150,7 +164,41 @@ const skillHeaders = ref([
 function formatLastLogin(timestamp) {
   if (!timestamp) return 'Never';
   const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  const now = new Date();
+  
+  // Format date as DD/MM/YYYY
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const formattedDate = `${day}/${month}/${year}`;
+  
+  // Format time as 12-hour format with AM/PM
+  const formattedTime = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  
+  // Calculate time ago with intelligent hour/minute conversion
+  const diffMs = now.getTime() - date.getTime();
+  const minutesAgo = Math.floor(diffMs / (1000 * 60));
+  const hoursAgo = Math.floor(minutesAgo / 60);
+  
+  let timeAgo;
+  if (minutesAgo < 60) {
+    // Less than 1 hour - show minutes
+    timeAgo = minutesAgo === 1 ? '1 Minute ago' : `${minutesAgo} Minutes ago`;
+  } else if (hoursAgo < 24) {
+    // Less than 1 day - show hours
+    timeAgo = hoursAgo === 1 ? '1 Hour ago' : `${hoursAgo} Hours ago`;
+  } else {
+    // 1 day or more - show days
+    const daysAgo = Math.floor(hoursAgo / 24);
+    timeAgo = daysAgo === 1 ? '1 Day ago' : `${daysAgo} Days ago`;
+  }
+  
+  return `${formattedDate} ${formattedTime} (${timeAgo})`;
 }
 
 // Get color based on skill level - unified function for consistent colors
