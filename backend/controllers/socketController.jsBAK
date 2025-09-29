@@ -1,0 +1,77 @@
+const rconService = require('../services/rconService');
+const logService = require('../services/logService');
+const cacheService = require('../services/cacheService');
+
+class SocketController {
+  constructor() {
+    this.pollingInterval = null;
+    this.lastData = { total: 0, players: [] };
+  }
+
+  async handleConnection(socket, io) {
+    console.log("Client connected:", socket.id);
+
+    // Send cached logs to new client
+    const cachedLogs = logService.getCachedLogs();
+    cachedLogs.forEach(line => {
+      socket.emit("server:log", line);
+    });
+
+    // Send cached skill and user data
+    const skillsAndUsers = await cacheService.getSkillsAndUsers();
+    socket.emit("skills:update", skillsAndUsers);
+
+    // Ensure RCON is connected before serving first data
+    await rconService.connect();
+
+    const data = await rconService.getPlayers();
+    this.lastData = data;
+    socket.emit("players:update", data);
+
+    if (io.engine.clientsCount === 1) {
+      this.startPolling(io);
+    }
+
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
+      if (io.engine.clientsCount === 0) {
+        this.stopPolling();
+      }
+    });
+  }
+
+  startPolling(io) {
+    if (this.pollingInterval) return;
+    console.log("▶️ Starting RCON polling...");
+
+    this.pollingInterval = setInterval(async () => {
+      const data = await rconService.getPlayers();
+      // Only broadcast if there's a change
+      if (
+        data.total !== this.lastData.total ||
+        data.players.join(",") !== this.lastData.players.join(",")
+      ) {
+        this.lastData = data;
+        io.emit("players:update", data);
+        
+        // send updated skills data
+        const skillsAndUsers = await cacheService.getSkillsAndUsers();
+        io.emit("skills:update", skillsAndUsers);
+        
+        console.log("Broadcast:", data);
+      }
+    }, 5000);
+  }
+
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+      console.log("⏹️ Stopped RCON polling (no clients connected).");
+    }
+  }
+
+
+}
+
+module.exports = new SocketController();

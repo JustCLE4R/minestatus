@@ -1,0 +1,199 @@
+require("dotenv").config();
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const { Rcon } = require("rcon-client");
+const fs = require("fs");
+const readline = require("readline");
+const chokidar = require("chokidar");
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // set to your frontend domain in prod
+  },
+});
+
+const PORT = process.env.PORT || 3000;
+const LOG_FILE = process.env.LOG_FILE || "./logs/latest.log";
+
+// --- Persistent RCON connection ---
+let rcon = null;
+let rconConnected = false;
+
+async function connectRcon() {
+  if (rconConnected) return rcon;
+
+  try {
+    rcon = await Rcon.connect({
+      host: process.env.RCON_HOST,
+      port: parseInt(process.env.RCON_PORT),
+      password: process.env.RCON_PASSWORD,
+    });
+
+    rconConnected = true;
+    console.log("✅ RCON connected");
+
+    rcon.on("end", () => {
+      console.log("⚠️ RCON connection closed, retrying in 5s...");
+      rconConnected = false;
+      setTimeout(connectRcon, 5000); // auto-reconnect
+    });
+
+    rcon.on("error", (err) => {
+      console.error("❌ RCON error:", err);
+      rconConnected = false;
+    });
+
+    return rcon;
+  } catch (err) {
+    console.error("❌ Failed to connect RCON:", err);
+    rconConnected = false;
+    setTimeout(connectRcon, 5000); // retry
+  }
+}
+
+// --- Query online players ---
+async function getPlayers() {
+  if (!rconConnected) {
+    await connectRcon();
+    if (!rconConnected) return { total: 0, players: [] };
+  }
+
+  try {
+    const response = await rcon.send("list");
+    const match = response.match(/There are (\d+) of a max of \d+ players online: ?(.*)?/);
+
+    if (!match) return { total: 0, players: [] };
+
+    const total = parseInt(match[1], 10);
+    const players = match[2] ? match[2].split(", ").filter((p) => p) : [];
+
+    return { total, players };
+  } catch (err) {
+    console.error("RCON send error:", err);
+    rconConnected = false; // force reconnect next call
+    return { total: 0, players: [] };
+  }
+}
+
+// --- Polling logic ---
+let pollingInterval = null;
+let lastData = { total: 0, players: [] };
+
+function startPolling() {
+  if (pollingInterval) return; // already running
+  console.log("▶️ Starting RCON polling...");
+
+  pollingInterval = setInterval(async () => {
+    const data = await getPlayers();
+    if (
+      data.total !== lastData.total ||
+      data.players.join(",") !== lastData.players.join(",")
+    ) {
+      lastData = data;
+      io.emit("players:update", data);
+      console.log("Broadcast:", data);
+    }
+  }, 5000);
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+    console.log("⏹️ Stopped RCON polling (no clients connected).");
+  }
+}
+
+// --- Log file watcher ---
+let cachedLogs = [];
+function startLogWatcher() {
+  fs.stat(LOG_FILE, (err, stats) => {
+    if (!err) {
+      lastSize = stats.size;
+      const stream = fs.createReadStream(LOG_FILE, {
+        encoding: "utf8",
+        start: Math.max(0, stats.size - 20000), // last ~20KB
+      });
+
+      const rl = readline.createInterface({ input: stream });
+      rl.on("line", (line) => {
+        // Filter out lines containing IP addresses or UUIDs
+        if (line.includes('/') && /\d+\.\d+\.\d+\.\d+/.test(line)) return; // Skip IP lines
+        if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(line)) return; // Skip UUID lines
+        
+        cachedLogs.push(line);
+        if (cachedLogs.length > 200) cachedLogs.shift(); // keep last 200 lines
+      });
+    }
+  });
+
+  chokidar.watch(LOG_FILE).on("change", () => {
+    fs.stat(LOG_FILE, (err, stats) => {
+      if (err) return;
+
+      if (stats.size < lastSize) lastSize = 0; // log rotated
+
+      const stream = fs.createReadStream(LOG_FILE, {
+        encoding: "utf8",
+        start: lastSize,
+        end: stats.size,
+      });
+
+      const rl = readline.createInterface({ input: stream });
+      rl.on("line", (line) => {
+        // Filter out lines containing IP addresses or UUIDs
+        if (line.includes('/') && /\d+\.\d+\.\d+\.\d+/.test(line)) return; // Skip IP lines
+        if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(line)) return; // Skip UUID lines
+        
+        cachedLogs.push(line);
+        if (cachedLogs.length > 200) cachedLogs.shift();
+
+        io.emit("server:log", line);
+        // console.log("[LOG]", line);
+      });
+
+      lastSize = stats.size;
+    });
+  });
+}
+
+// On client connect → send cached logs first
+io.on("connection", (socket) => {
+  console.log("Client connected, sending cached logs...");
+  cachedLogs.forEach(line => {
+    socket.emit("server:log", line);
+  });
+});
+
+
+// --- Socket.IO handlers ---
+io.on("connection", async (socket) => {
+  console.log("Client connected:", socket.id);
+
+  // Ensure RCON is connected before serving first data
+  await connectRcon();
+
+  const data = await getPlayers();
+  lastData = data;
+  socket.emit("players:update", data);
+
+  if (io.engine.clientsCount === 1) {
+    startPolling();
+  }
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+    if (io.engine.clientsCount === 0) {
+      stopPolling();
+    }
+  });
+});
+
+server.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  await connectRcon(); // connect once at startup
+  startLogWatcher(); // 👈 start log tailing
+});
