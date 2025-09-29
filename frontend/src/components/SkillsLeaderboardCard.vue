@@ -77,13 +77,47 @@
                     <v-card variant="outlined" class="mb-3 combat-card">
                       <v-card-title class="text-subtitle-1 pa-3 combat-header">⚔️ Combat</v-card-title>
                       <v-card-text class="pt-0">
-                        <div :class="['skill-item', { [getHighlightClass(item.swords)]: getTop3SkillNames(item).includes('swords') }]">🗡️ <strong>Swords:</strong> {{ item.swords }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.axes)]: getTop3SkillNames(item).includes('axes') }]">🪓 <strong>Axes:</strong> {{ item.axes }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.archery)]: getTop3SkillNames(item).includes('archery') }]">🏹 <strong>Archery:</strong> {{ item.archery }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.crossbows)]: getTop3SkillNames(item).includes('crossbows') }]">🏹 <strong>Crossbows:</strong> {{ item.crossbows }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.tridents)]: getTop3SkillNames(item).includes('tridents') }]">🔱 <strong>Tridents:</strong> {{ item.tridents }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.maces)]: getTop3SkillNames(item).includes('maces') }]">🔨 <strong>Maces:</strong> {{ item.maces }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.unarmed)]: getTop3SkillNames(item).includes('unarmed') }]">👊 <strong>Unarmed:</strong> {{ item.unarmed }}</div>
+                        <v-tooltip text="This skill awards combat bonuses to anyone fighting with a sword." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.swords)]: getTop3SkillNames(item).includes('swords') }]">🗡️ <strong>Swords:</strong> {{ item.swords }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="With the Axes skill you can use your axe for much more than just deforesting! You can hack and chop away at mobs and players to gain XP, hitting mobs with the effect of knockback and inflicting DEADLY criticals on mobs and players. Your axe also becomes a hand-held woodchipper, breaking down the enemy's armor with ease as your level increases." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.axes)]: getTop3SkillNames(item).includes('axes') }]">🪓 <strong>Axes:</strong> {{ item.axes }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Archery is about shooting with your bow and arrow. It provides various combat bonuses, such as a damage boost that scales with your level and the ability to daze your opponents in PvP. In addition to this, you can retrieve some of your spent arrows from the corpses of your foes." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.archery)]: getTop3SkillNames(item).includes('archery') }]">🏹 <strong>Archery:</strong> {{ item.archery }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Crossbows is all about shooting with your crossbow." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.crossbows)]: getTop3SkillNames(item).includes('crossbows') }]">🏹 <strong>Crossbows:</strong> {{ item.crossbows }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="The Tridents skill involves impaling foes with your trident." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.tridents)]: getTop3SkillNames(item).includes('tridents') }]">🔱 <strong>Tridents:</strong> {{ item.tridents }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="The Maces skill is great at crushing your foes." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.maces)]: getTop3SkillNames(item).includes('maces') }]">🔨 <strong>Maces:</strong> {{ item.maces }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Unarmed will give players various combat bonuses when using your fists as a weapon." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.unarmed)]: getTop3SkillNames(item).includes('unarmed') }]">👊 <strong>Unarmed:</strong> {{ item.unarmed }}</div>
+                          </template>
+                        </v-tooltip>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -93,11 +127,35 @@
                     <v-card variant="outlined" class="mb-3 gathering-card">
                       <v-card-title class="text-subtitle-1 pa-3 gathering-header">⛏️ Gathering</v-card-title>
                       <v-card-text class="pt-0">
-                        <div :class="['skill-item', { [getHighlightClass(item.mining)]: getTop3SkillNames(item).includes('mining') }]">⛏️ <strong>Mining:</strong> {{ item.mining }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.woodcutting)]: getTop3SkillNames(item).includes('woodcutting') }]">🌲 <strong>Woodcutting:</strong> {{ item.woodcutting }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.excavation)]: getTop3SkillNames(item).includes('excavation') }]">🏗️ <strong>Excavation:</strong> {{ item.excavation }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.fishing)]: getTop3SkillNames(item).includes('fishing') }]">🎣 <strong>Fishing:</strong> {{ item.fishing }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.herbalism)]: getTop3SkillNames(item).includes('herbalism') }]">🌿 <strong>Herbalism:</strong> {{ item.herbalism }}</div>
+                        <v-tooltip text="Mining consists of mining stone and ores. It provides bonuses to the amount of materials dropped while mining." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.mining)]: getTop3SkillNames(item).includes('mining') }]">⛏️ <strong>Mining:</strong> {{ item.mining }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Woodcutting is all about chopping down trees." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.woodcutting)]: getTop3SkillNames(item).includes('woodcutting') }]">🌲 <strong>Woodcutting:</strong> {{ item.woodcutting }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Excavation is the act of digging up dirt to find treasures. By excavating the land you will find treasures. The more you do this the more treasures you can find." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.excavation)]: getTop3SkillNames(item).includes('excavation') }]">🏗️ <strong>Excavation:</strong> {{ item.excavation }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="With the Fishing skill, Fishing is exciting again! Find hidden treasures, and shake items off mobs." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.fishing)]: getTop3SkillNames(item).includes('fishing') }]">🎣 <strong>Fishing:</strong> {{ item.fishing }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Herbalism is about collecting herbs and plants." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.herbalism)]: getTop3SkillNames(item).includes('herbalism') }]">🌿 <strong>Herbalism:</strong> {{ item.herbalism }}</div>
+                          </template>
+                        </v-tooltip>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -107,10 +165,29 @@
                     <v-card variant="outlined" class="mb-3 other-card">
                       <v-card-title class="text-subtitle-1 pa-3 other-header">🔧 Other</v-card-title>
                       <v-card-text class="pt-0">
-                        <div :class="['skill-item', { [getHighlightClass(item.repair)]: getTop3SkillNames(item).includes('repair') }]">🔧 <strong>Repair:</strong> {{ item.repair }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.alchemy)]: getTop3SkillNames(item).includes('alchemy') }]">🧪 <strong>Alchemy:</strong> {{ item.alchemy }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.taming)]: getTop3SkillNames(item).includes('taming') }]">🐺 <strong>Taming:</strong> {{ item.taming }}</div>
-                        <div :class="['skill-item', { [getHighlightClass(item.acrobatics)]: getTop3SkillNames(item).includes('acrobatics') }]">🤸 <strong>Acrobatics:</strong> {{ item.acrobatics }}</div>
+                        <v-tooltip text="Repair allows you to use an iron block to repair armor and tools." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.repair)]: getTop3SkillNames(item).includes('repair') }]">🔧 <strong>Repair:</strong> {{ item.repair }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Alchemy is about brewing potions. It provides a speed increase in the potion brew time, as well as the addition of new (previously) unobtainable potions." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.alchemy)]: getTop3SkillNames(item).includes('alchemy') }]">🧪 <strong>Alchemy:</strong> {{ item.alchemy }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Taming will give players various combat bonuses when using tamed wolves." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.taming)]: getTop3SkillNames(item).includes('taming') }]">🐺 <strong>Taming:</strong> {{ item.taming }}</div>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip text="Acrobatics is the art of moving gracefully. It provides combat bonuses and environment damage bonuses." location="top">
+                          <template v-slot:activator="{ props }">
+                            <div v-bind="props" :class="['skill-item', { [getHighlightClass(item.acrobatics)]: getTop3SkillNames(item).includes('acrobatics') }]">🤸 <strong>Acrobatics:</strong> {{ item.acrobatics }}</div>
+                          </template>
+                        </v-tooltip>
                       </v-card-text>
                     </v-card>
                   </v-col>
