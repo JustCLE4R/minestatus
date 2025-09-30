@@ -5,12 +5,49 @@
         <!-- Page Header -->
         <v-row class="mb-6">
           <v-col cols="12">
-            <h1 class="text-h4 font-weight-bold mb-2">
-              🎮 Player Session History
-            </h1>
-            <p class="text-subtitle-1 text-medium-emphasis">
-              Track player activity and session statistics
-            </p>
+            <div class="d-flex align-center justify-space-between">
+              <div class="d-flex align-center">
+                <v-btn
+                  icon
+                  variant="text"
+                  to="/"
+                  class="mr-3"
+                  size="large"
+                >
+                  <v-icon>mdi-arrow-left</v-icon>
+                </v-btn>
+                <div>
+                  <h1 class="text-h4 font-weight-bold mb-2">
+                    🎮 Player Session History
+                  </h1>
+                  <p class="text-subtitle-1 text-medium-emphasis">
+                    Track player activity and session statistics
+                  </p>
+                </div>
+              </div>
+              <div class="text-right">
+                <v-chip
+                  v-if="realTimeUpdates"
+                  color="success"
+                  variant="tonal"
+                  size="small"
+                  class="mb-2"
+                >
+                  <v-icon start size="small">mdi-wifi</v-icon>
+                  Live Updates
+                </v-chip>
+                <v-chip
+                  v-else
+                  color="grey"
+                  variant="tonal"
+                  size="small"
+                  class="mb-2"
+                >
+                  <v-icon start size="small">mdi-wifi-off</v-icon>
+                  Manual Refresh
+                </v-chip>
+              </div>
+            </div>
           </v-col>
         </v-row>
 
@@ -73,7 +110,7 @@
         <v-card class="mb-6">
           <v-card-text>
             <v-row align="center">
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="3">
                 <v-text-field
                   v-model="playerFilter"
                   hide-details
@@ -86,7 +123,7 @@
                 />
               </v-col>
 
-              <v-col cols="12" md="3">
+              <v-col cols="12" md="2">
                 <v-select
                   v-model="timeFilter"
                   hide-details
@@ -98,17 +135,26 @@
                 />
               </v-col>
 
-              <v-col cols="12" md="3">
+              <v-col cols="6" md="2">
                 <v-switch
                   v-model="activeOnly"
                   hide-details
-                  label="Active sessions only"
+                  label="Active only"
                   color="primary"
                   @update:model-value="loadSessions(1)"
                 />
               </v-col>
 
-              <v-col cols="12" md="2">
+              <v-col cols="6" md="2">
+                <v-switch
+                  v-model="realTimeUpdates"
+                  hide-details
+                  label="Real-time"
+                  color="success"
+                />
+              </v-col>
+
+              <v-col cols="12" md="3">
                 <v-btn
                   @click="refreshAll"
                   color="primary"
@@ -222,18 +268,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { io } from 'socket.io-client'
 
 // API Configuration
-const API_BASE = 'http://localhost:3000/api'
+const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
+// const API_BASE = 'http://localhost:3000/api' 
+
+// Socket.IO connection
+let socket = null
 
 // Reactive Data
+const total = ref(0);
 const sessions = ref([])
 const stats = ref({})
 const activeSessionsCount = ref(0)
 const loading = ref(false)
 const errorSnackbar = ref(false)
 const errorMessage = ref('')
+const realTimeUpdates = ref(true) // Track if real-time updates are enabled
 
 // Filters
 const playerFilter = ref('')
@@ -244,6 +297,16 @@ const activeOnly = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 const totalItems = ref(0)
+
+// Update page title based on player count
+watch(
+  total,
+  (newTotal) => {
+    const playerText = newTotal === 1 ? "Player" : "Players";
+    document.title = `Minestatus | ${newTotal} ${playerText} Online`;
+  },
+  { immediate: true }
+);
 
 // Table Headers
 const headers = [
@@ -363,28 +426,35 @@ async function refreshAll() {
   ])
 }
 
-// Auto-refresh for active sessions
-// let autoRefreshInterval = null
-// function startAutoRefresh() {
-//   autoRefreshInterval = setInterval(() => {
-//     if (activeOnly.value) {
-//       loadSessions()
-//     }
-//     loadStats()
-//   }, 30000) // Refresh every 30 seconds
-// }
-
-// function stopAutoRefresh() {
-//   if (autoRefreshInterval) {
-//     clearInterval(autoRefreshInterval)
-//     autoRefreshInterval = null
-//   }
-// }
-
 // Lifecycle
 onMounted(() => {
   refreshAll()
-  // startAutoRefresh()
+  
+  // Initialize Socket.IO connection for real-time updates
+  socket = io(API_BASE.replace('/api', ''))
+  
+  // Listen for player updates to refresh session data
+  socket.on('players:update', (data) => {
+    total.value = data.total;
+    // Only refresh if real-time updates are enabled
+    if (realTimeUpdates.value) {
+      // Refresh stats and sessions when players join/leave
+      loadStats()
+      
+      // Only refresh sessions if we're viewing active sessions or recent data
+      if (activeOnly.value || currentPage.value === 1) {
+        loadSessions()
+      }
+    }
+  })
+  
+  socket.on('connect', () => {
+    console.log('🔌 Connected to server for real-time session updates')
+  })
+  
+  socket.on('disconnect', () => {
+    console.log('🔌 Disconnected from server')
+  })
 })
 
 // Watch for active only changes
@@ -397,10 +467,19 @@ onMounted(() => {
 // })
 
 // Cleanup
-// onBeforeUnmount(() => {
-//   stopAutoRefresh()
-//   if (debounceTimer) clearTimeout(debounceTimer)
-// })
+onBeforeUnmount(() => {
+  // Disconnect socket
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
+  
+  // Clear debounce timer
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+})
 </script>
 
 <style scoped>

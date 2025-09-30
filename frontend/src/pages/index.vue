@@ -43,6 +43,10 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { io } from "socket.io-client";
 
+// API Configuration
+const API_BASE = 'https://minestatus-backend.cle4r.my.id'
+// const API_BASE = 'http://localhost:3000' 
+
 // Import components
 import OnlinePlayersCard from "../components/OnlinePlayersCard.vue";
 import ServerConsoleCard from "../components/ServerConsoleCard.vue";
@@ -117,8 +121,7 @@ function stopSessionUpdateTimer() {
 
 // Socket.IO connection and event handlers
 onMounted(() => {
-  // const socket = io("https://minestatus-backend.cle4r.my.id"); // set base URL manually
-  const socket = io("http://127.0.0.1:3000"); // set base URL manually
+  const socket = io(API_BASE); // set base URL manually
 
   // Mock data for testing - 7 online players
   // setTimeout(() => {

@@ -1,6 +1,18 @@
 <template>
   <v-card class="online-players-card d-flex flex-column">
-    <v-card-title> Online Players: {{ total }} </v-card-title>
+    <v-card-title class="d-flex align-center justify-space-between">
+      <span>Online Players: {{ total }}</span>
+      <v-btn
+        variant="text"
+        size="small"
+        color="primary"
+        to="/sessions"
+        class="text-caption"
+      >
+        Session History
+        <v-icon size="small" class="ml-1">mdi-history</v-icon>
+      </v-btn>
+    </v-card-title>
     <v-card-text class="flex-grow-1 d-flex flex-column overflow-auto">
       <v-list class="player-list flex-grow-1">
         <v-list-item v-for="player in playersWithSessions" :key="player.name || player">

@@ -89,16 +89,10 @@ class SessionService {
     const joined = currentPlayers.filter(p => !previousPlayers.includes(p));
     const left = previousPlayers.filter(p => !currentPlayers.includes(p));
 
-    // Track new joins
-    for (const player of joined) {
-      await this.playerJoined(player);
-    }
+    // Note: We don't call playerJoined/playerLeft here anymore
+    // LogService handles session tracking from log events for accuracy
+    // This method now just returns the join/leave detection for other uses
     
-    // Track leaves
-    for (const player of left) {
-      await this.playerLeft(player);
-    }
-
     return { joined, left };
   }
 
