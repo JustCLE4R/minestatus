@@ -30,7 +30,7 @@ class LogService {
   }
 
   addLogLine(line, broadcast = false) {
-    if (!this.filterLine(line)) return;
+    // if (!this.filterLine(line)) return;
     
     this.cachedLogs.push(line);
     if (this.cachedLogs.length > 200) this.cachedLogs.shift();
@@ -58,10 +58,10 @@ class LogService {
       return;
     }
 
-    // Check for player leave events
-    const leaveMatch = line.match(/(\w+) left the game/) || 
-                     line.match(/(\w+) Disconnected/) ||
-                     line.match(/(\w+) disconnected/);
+    // Check for player leave events - improved patterns
+    const leaveMatch = line.match(/(\w+) left the game/i) || 
+                     line.match(/(\w+) lost connection:/i) ||
+                     line.match(/(\w+) has disconnected/i);
     if (leaveMatch) {
       const playerName = leaveMatch[1];
       sessionService.playerLeft(playerName);
