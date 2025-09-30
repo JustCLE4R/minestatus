@@ -397,6 +397,11 @@ async function loadSessions(options = null) {
       page = options
     }
     
+    // Handle "All" items per page case - convert -1 or negative values to a large number
+    if (limit <= 0) {
+      limit = 10000; // Use a large number instead of -1
+    }
+    
     let url = `${API_BASE}/sessions?page=${page}&limit=${limit}`
     if (playerFilter.value) url += `&playerName=${encodeURIComponent(playerFilter.value)}`
     if (activeOnly.value) url += `&activeOnly=true`
@@ -447,24 +452,7 @@ onMounted(() => {
       }
     }
   })
-  
-  socket.on('connect', () => {
-    console.log('🔌 Connected to server for real-time session updates')
-  })
-  
-  socket.on('disconnect', () => {
-    console.log('🔌 Disconnected from server')
-  })
 })
-
-// Watch for active only changes
-// watch(activeOnly, () => {
-//   if (activeOnly.value) {
-//     startAutoRefresh()
-//   } else {
-//     stopAutoRefresh()
-//   }
-// })
 
 // Cleanup
 onBeforeUnmount(() => {

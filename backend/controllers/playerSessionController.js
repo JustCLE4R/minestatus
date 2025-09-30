@@ -38,7 +38,7 @@ class PlayerSessionController {
 
       const result = await PlayerSession.findAndCountAll({
         where,
-        order: [['isActive', 'DESC'], ['sessionStart', 'DESC']],
+        order: [['isActive', 'DESC'], ['sessionEnd', 'DESC'], ['sessionStart', 'DESC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
