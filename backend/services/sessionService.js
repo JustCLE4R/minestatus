@@ -1,6 +1,11 @@
 class SessionService {
   constructor() {
     this.playerSessions = new Map(); // Map of playerName -> { loginTime, isOnline }
+    
+    // Automatically clean up old sessions every hour
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupOldSessions();
+    }, 60 * 60 * 1000); // 1 hour
   }
 
   // Track when a player joins
@@ -73,11 +78,41 @@ class SessionService {
   // Clean up old offline sessions (optional - for memory management)
   cleanupOldSessions(maxAgeMs = 24 * 60 * 60 * 1000) { // Default: 24 hours
     const now = Date.now();
+    let cleanedCount = 0;
+    
     for (const [playerName, session] of this.playerSessions.entries()) {
       if (!session.isOnline && (now - session.loginTime) > maxAgeMs) {
         this.playerSessions.delete(playerName);
-        console.log(`🧹 Cleaned up old session for ${playerName}`);
+        cleanedCount++;
       }
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`🧹 Cleaned up ${cleanedCount} old session(s)`);
+    }
+  }
+
+  // Get all active sessions
+  getActiveSessions() {
+    const activeSessions = [];
+    for (const [playerName, session] of this.playerSessions.entries()) {
+      if (session.isOnline) {
+        activeSessions.push({
+          playerName,
+          loginTime: session.loginTime,
+          sessionDuration: this.getSessionDuration(playerName),
+          sessionDurationFormatted: this.getFormattedSessionDuration(playerName)
+        });
+      }
+    }
+    return activeSessions;
+  }
+
+  // Destroy cleanup interval (for testing or shutdown)
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
     }
   }
 }
