@@ -1,3 +1,5 @@
+const { PlayerSession } = require('../models');
+
 class SessionService {
   constructor() {
     this.playerSessions = new Map(); // Map of playerName -> { loginTime, isOnline }
@@ -9,19 +11,50 @@ class SessionService {
   }
 
   // Track when a player joins
-  playerJoined(playerName) {
-    const now = Date.now();
-    this.playerSessions.set(playerName, {
-      loginTime: now,
-      isOnline: true
-    });
-    console.log(`📈 Session started for ${playerName} at ${new Date(now).toISOString()}`);
+  async playerJoined(playerName) {
+    try {
+      const now = new Date();
+
+      const playerSession = await PlayerSession.create({
+        playerName,
+        sessionStart: now,
+        isActive: true
+      });
+
+      this.playerSessions.set(playerName, {
+        sessionId: playerSession.id,
+        loginTime: now.getTime(), // Store as timestamp for consistency
+        isOnline: true
+      });
+      console.log(`📈 Session started for ${playerName} at ${now.toISOString()}`);
+    } catch (error) {
+      console.error(`❌ Error creating session for ${playerName}:`, error);
+      // Fallback to in-memory only tracking
+      this.playerSessions.set(playerName, {
+        sessionId: null,
+        loginTime: Date.now(),
+        isOnline: true
+      });
+    }
   }
 
   // Track when a player leaves
-  playerLeft(playerName) {
+  async playerLeft(playerName) {
     if (this.playerSessions.has(playerName)) {
       const session = this.playerSessions.get(playerName);
+
+      // Update session end in DB if we have a session ID
+      if (session.sessionId) {
+        try {
+          await PlayerSession.update(
+            { sessionEnd: new Date(), isActive: false },
+            { where: { id: session.sessionId } }
+          );
+        } catch (error) {
+          console.error(`❌ Error updating session for ${playerName}:`, error);
+        }
+      }
+
       session.isOnline = false;
       console.log(`📉 Session ended for ${playerName}`);
     }
@@ -52,15 +85,19 @@ class SessionService {
   }
 
   // Update current online players and detect joins/leaves
-  updatePlayers(currentPlayers, previousPlayers = []) {
+  async updatePlayers(currentPlayers, previousPlayers = []) {
     const joined = currentPlayers.filter(p => !previousPlayers.includes(p));
     const left = previousPlayers.filter(p => !currentPlayers.includes(p));
 
     // Track new joins
-    joined.forEach(player => this.playerJoined(player));
+    for (const player of joined) {
+      await this.playerJoined(player);
+    }
     
     // Track leaves
-    left.forEach(player => this.playerLeft(player));
+    for (const player of left) {
+      await this.playerLeft(player);
+    }
 
     return { joined, left };
   }

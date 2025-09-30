@@ -2,6 +2,7 @@ const fs = require("fs");
 const readline = require("readline");
 const chokidar = require("chokidar");
 const sessionService = require('./sessionService');
+const rconService = require('./rconService');
 
 class LogService {
   constructor() {
@@ -29,14 +30,16 @@ class LogService {
     return true;
   }
 
-  addLogLine(line, broadcast = false) {
+  addLogLine(line, broadcast = false, checkEvents = true) {
     // if (!this.filterLine(line)) return;
     
     this.cachedLogs.push(line);
     if (this.cachedLogs.length > 200) this.cachedLogs.shift();
     
-    // Check for player events and notify session service
-    this.checkPlayerEvents(line);
+    // Only check for player events if specified (skip for historical logs)
+    if (checkEvents) {
+      this.checkPlayerEvents(line);
+    }
     
     if (broadcast && this.io) {
       this.io.emit("server:log", line);
@@ -79,7 +82,6 @@ class LogService {
     // Small delay to ensure the event is fully processed
     setTimeout(async () => {
       try {
-        const rconService = require('./rconService');
         const data = await rconService.getPlayers();
         
         if (this.io) {
@@ -112,7 +114,7 @@ class LogService {
 
         const rl = readline.createInterface({ input: stream });
         rl.on("line", (line) => {
-          this.addLogLine(line, false); // don't broadcast initial logs
+          this.addLogLine(line, false, false); // don't broadcast initial logs and don't check events
         });
       } else {
         console.log("⚠️ Log file not found, will create watcher anyway:", this.LOG_FILE);
@@ -140,7 +142,7 @@ class LogService {
 
         const rl = readline.createInterface({ input: stream });
         rl.on("line", (line) => {
-          this.addLogLine(line, true); // broadcast new logs if clients connected
+          this.addLogLine(line, true, true); // broadcast new logs and check for player events
         });
 
         this.lastSize = stats.size;
