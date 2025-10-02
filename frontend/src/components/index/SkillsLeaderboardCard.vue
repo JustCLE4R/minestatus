@@ -48,8 +48,8 @@
             </v-chip>
           </div>
         </template>
-        <template #item.User.lastlogin="{ item }">
-          {{ formatLastLogin(item.User.lastlogin) }}
+        <template #item.lastLogin="{ item }">
+          {{ formatLastLogin(item.lastLogin) }}
         </template>
         <template #item.total="{ item }">
           <v-chip 
@@ -233,14 +233,14 @@ const skillHeaders = ref([
   { title: 'Player', key: 'User.user', sortable: true },
   { title: 'Total Level', key: 'total', sortable: true },
   { title: 'Top Skills', key: 'topSkills', sortable: false },
-  { title: 'Last Login', key: 'User.lastlogin', sortable: true },
+  { title: 'Last Login', key: 'lastLogin', sortable: true },
   { title: '', key: 'data-table-expand', sortable: false }
 ]);
 
-// Format Unix timestamp to readable date
+// Format ISO timestamp to readable date
 function formatLastLogin(timestamp) {
   if (!timestamp) return 'Never';
-  const date = new Date(timestamp * 1000);
+  const date = new Date(timestamp); // ISO string can be parsed directly
   const now = new Date();
   
   // Format date as DD/MM/YYYY

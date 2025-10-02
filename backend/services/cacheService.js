@@ -1,4 +1,5 @@
-const { User, Skill } = require('../models');
+const { Skill, PlayerSession, User } = require('../models');
+const { Op } = require('sequelize');
 
 class CacheService {
   constructor() {
@@ -30,23 +31,54 @@ class CacheService {
     // Fetch fresh data and update cache
     console.log("🔄 Fetching fresh skills/users data from database");
     try {
-      const [skillData, userData] = await Promise.all([
-        Skill.findAll({
-          include: [{ 
-            model: User, 
-            as: 'User',
-            attributes: { exclude: ['uuid'] }
-          }], // Include user info with skills, excluding uuid
-          order: [['total', 'DESC']] // Order by total skills descending
-        }),
-        // User.findAll({
-        //   order: [['lastlogin', 'DESC']], // Order by last login
-        //   limit: 100 // Limit to prevent huge datasets
-        // })
-      ]);
+      // Get skills data with user info
+      const skillData = await Skill.findAll({
+        include: [{ 
+          model: User, 
+          as: 'User',
+          attributes: { exclude: ['uuid'] }
+        }], // Include user info with skills, excluding uuid
+        order: [['total', 'DESC']] // Order by total skills descending
+      });
+
+      // Get the most recent session end time for each player
+      const playerNames = skillData.map(skill => skill.User.user);
       
-      // this.skillsCache.data = { skills: skillData, users: userData };
-      this.skillsCache.data = { skills: skillData };
+      // Get only the most recent session for each player using a subquery
+      const latestSessions = await PlayerSession.findAll({
+        attributes: ['playerName', 'sessionEnd'],
+        where: {
+          playerName: playerNames,
+          sessionEnd: { [Op.not]: null }, // Only sessions that have ended
+          id: {
+            [Op.in]: PlayerSession.sequelize.literal(`(
+              SELECT MAX(id) FROM player_sessions ps2 
+              WHERE ps2.player_name = PlayerSession.player_name 
+              AND ps2.session_end IS NOT NULL
+            )`)
+          }
+        }
+      });
+
+      // Create a map of playerName -> most recent sessionEnd
+      const lastLoginMap = {};
+      latestSessions.forEach(session => {
+        if (!lastLoginMap[session.playerName]) {
+          lastLoginMap[session.playerName] = session.sessionEnd;
+        }
+      });
+
+      // Add the latest session end time to each skill data
+      const skillDataWithLastLogin = skillData.map(skill => {
+        const skillJson = skill.toJSON();
+        
+        // Use only session data for lastLogin (more accurate and consistent)
+        skillJson.lastLogin = lastLoginMap[skill.User.user] || null;
+        
+        return skillJson;
+      });
+
+      this.skillsCache.data = { skills: skillDataWithLastLogin };
       this.skillsCache.lastUpdated = now;
       
       // Emit update to connected clients immediately when cache expires and refreshes
@@ -59,7 +91,6 @@ class CacheService {
     } catch (error) {
       console.error("❌ Error fetching skills/users:", error);
       // Return cached data even if expired, or empty data
-      // return this.skillsCache.data || { skills: [], users: [] };
       return this.skillsCache.data || { skills: [] };
     }
   }

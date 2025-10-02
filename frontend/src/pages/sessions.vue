@@ -3,235 +3,43 @@
     <v-main>
       <v-container>
         <!-- Page Header -->
-        <v-row class="mb-6">
-          <v-col cols="12">
-            <div class="d-flex align-center justify-space-between">
-              <div class="d-flex align-center">
-                <v-btn
-                  icon
-                  variant="text"
-                  to="/"
-                  class="mr-3"
-                  size="large"
-                >
-                  <v-icon>mdi-arrow-left</v-icon>
-                </v-btn>
-                <div>
-                  <h1 class="text-h4 font-weight-bold mb-2">
-                    🎮 Player Session History
-                  </h1>
-                  <p class="text-subtitle-1 text-medium-emphasis">
-                    Track player activity and session statistics
-                  </p>
-                </div>
-              </div>
-              <div class="text-right">
-                <v-chip
-                  v-if="realTimeUpdates"
-                  color="success"
-                  variant="tonal"
-                  size="small"
-                  class="mb-2"
-                >
-                  <v-icon start size="small">mdi-wifi</v-icon>
-                  Live Updates
-                </v-chip>
-                <v-chip
-                  v-else
-                  color="grey"
-                  variant="tonal"
-                  size="small"
-                  class="mb-2"
-                >
-                  <v-icon start size="small">mdi-wifi-off</v-icon>
-                  Manual Refresh
-                </v-chip>
-              </div>
-            </div>
-          </v-col>
-        </v-row>
+        <SessionPageHeader :realTimeUpdates="realTimeUpdates" />
 
         <!-- Statistics Cards -->
-        <v-row class="mb-6">
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-4 text-center">
-              <v-card-text>
-                <div class="text-h4 font-weight-bold text-primary mb-2">
-                  {{ stats.totalSessions || '-' }}
-                </div>
-                <div class="text-subtitle-2 text-medium-emphasis">
-                  Total Sessions
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-4 text-center">
-              <v-card-text>
-                <div class="text-h4 font-weight-bold text-success mb-2">
-                  {{ activeSessionsCount || '-' }}
-                </div>
-                <div class="text-subtitle-2 text-medium-emphasis">
-                  Active Sessions
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-4 text-center">
-              <v-card-text>
-                <div class="text-h4 font-weight-bold text-info mb-2">
-                  {{ stats.uniquePlayers || '-' }}
-                </div>
-                <div class="text-subtitle-2 text-medium-emphasis">
-                  Unique Players
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" md="3">
-            <v-card class="pa-4 text-center">
-              <v-card-text>
-                <div class="text-h4 font-weight-bold text-warning mb-2">
-                  {{ formatDuration(stats.averageSessionLength) || '-' }}
-                </div>
-                <div class="text-subtitle-2 text-medium-emphasis">
-                  Avg Session Time
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
+        <SessionStatisticsCards 
+          :stats="stats" 
+          :activeSessionsCount="activeSessionsCount" 
+        />
 
         <!-- Filters and Controls -->
-        <v-card class="mb-6">
-          <v-card-text>
-            <v-row align="center">
-              <v-col cols="12" md="3">
-                <v-text-field
-                  v-model="playerFilter"
-                  hide-details
-                  label="Filter by player name"
-                  prepend-inner-icon="mdi-magnify"
-                  clearable
-                  variant="outlined"
-                  density="compact"
-                  @input="onPlayerFilterChange"
-                />
-              </v-col>
-
-              <v-col cols="12" md="2">
-                <v-select
-                  v-model="timeFilter"
-                  hide-details
-                  :items="timeFilterOptions"
-                  label="Time Period"
-                  variant="outlined"
-                  density="compact"
-                  @update:model-value="loadStats"
-                />
-              </v-col>
-
-              <v-col cols="6" md="2">
-                <v-switch
-                  v-model="activeOnly"
-                  hide-details
-                  label="Active only"
-                  color="primary"
-                  @update:model-value="loadSessions(1)"
-                />
-              </v-col>
-
-              <v-col cols="6" md="2">
-                <v-switch
-                  v-model="realTimeUpdates"
-                  hide-details
-                  label="Real-time"
-                  color="success"
-                />
-              </v-col>
-
-              <v-col cols="12" md="3">
-                <v-btn
-                  @click="refreshAll"
-                  color="primary"
-                  variant="outlined"
-                  block
-                  :loading="loading"
-                >
-                  <v-icon start>mdi-refresh</v-icon>
-                  Refresh
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <SessionFilters
+          v-model:playerFilter="playerFilter"
+          v-model:timeFilter="timeFilter"
+          v-model:activeOnly="activeOnly"
+          v-model:realTimeUpdates="realTimeUpdates"
+          :loading="loading"
+          @refresh="refreshAll"
+          @playerFilterChange="loadSessions(1)"
+          @update:timeFilter="loadStats"
+          @update:activeOnly="loadSessions(1)"
+        />
 
         <!-- Sessions Table -->
-        <v-card>
-          <v-card-title>
-            Session History
-          </v-card-title>
+        <SessionsTable
+          :sessions="sessions"
+          :totalItems="totalItems"
+          :currentPage="currentPage"
+          :itemsPerPage="itemsPerPage"
+          :loading="loading"
+          @update:currentPage="currentPage = $event"
+          @update:itemsPerPage="itemsPerPage = $event"
+          @updateOptions="loadSessions"
+        />
 
-          <v-data-table-server
-            v-model:items-per-page="itemsPerPage"
-            v-model:page="currentPage"
-            :headers="headers"
-            :items="sessions"
-            :items-length="totalItems"
-            :loading="loading"
-            :no-data-text="sessions.length === 0 ? 'No sessions found' : 'Loading...'"
-            @update:options="loadSessions"
-            class="elevation-0"
-          >
-            <!-- Player Name Column -->
-            <template v-slot:item.playerName="{ item }">
-              <div class="font-weight-medium">
-                {{ item.playerName }}
-              </div>
-            </template>
+        <!-- TODO: Graphical Representation -->
 
-            <!-- Session Start Column -->
-            <template v-slot:item.sessionStart="{ item }">
-              <div class="text-body-2">
-                {{ formatDate(item.sessionStart) }}
-              </div>
-            </template>
-
-            <!-- Session End Column -->
-            <template v-slot:item.sessionEnd="{ item }">
-              <div class="text-body-2">
-                {{ item.sessionEnd ? formatDate(item.sessionEnd) : '-' }}
-              </div>
-            </template>
-
-            <!-- Duration Column -->
-            <template v-slot:item.duration="{ item }">
-              <v-chip
-                :color="item.isActive ? 'success' : 'default'"
-                variant="tonal"
-                size="small"
-              >
-                {{ formatDuration(item.duration) || '-' }}
-              </v-chip>
-            </template>
-
-            <!-- Status Column -->
-            <template v-slot:item.isActive="{ item }">
-              <v-chip
-                :color="item.isActive ? 'success' : 'grey'"
-                :prepend-icon="item.isActive ? 'mdi-circle' : 'mdi-circle-outline'"
-                variant="tonal"
-                size="small"
-              >
-                {{ item.isActive ? 'Active' : 'Ended' }}
-              </v-chip>
-            </template>
-          </v-data-table-server>
-        </v-card>
+        <!-- Toast Notifications -->
+        <ToastNotifications :toasts="toasts" />
 
         <!-- Loading Overlay -->
         <v-overlay
@@ -271,9 +79,24 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { io } from 'socket.io-client'
 
+// Import composables
+import { useToasts } from '../composables/useToasts'
+import { usePlayerNotifications } from '../composables/usePlayerNotifications'
+
+// Import components
+import SessionPageHeader from '../components/sessions/SessionPageHeader.vue'
+import SessionStatisticsCards from '../components/sessions/SessionStatisticsCards.vue'
+import SessionFilters from '../components/sessions/SessionFilters.vue'
+import SessionsTable from '../components/sessions/SessionsTable.vue'
+import ToastNotifications from '../components/ToastNotifications.vue'
+
+// Use composables
+const { toasts } = useToasts()
+const { handlePlayersUpdate } = usePlayerNotifications()
+
 // API Configuration
-const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
-// const API_BASE = 'http://localhost:3000/api' 
+// const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
+const API_BASE = 'http://localhost:3000/api' 
 
 // Socket.IO connection
 let socket = null
@@ -308,66 +131,10 @@ watch(
   { immediate: true }
 );
 
-// Table Headers
-const headers = [
-  { title: 'Player', key: 'playerName', sortable: false },
-  { title: 'Session Start', key: 'sessionStart', sortable: false },
-  { title: 'Session End', key: 'sessionEnd', sortable: false },
-  { title: 'Duration', key: 'duration', sortable: false },
-  { title: 'Status', key: 'isActive', sortable: false }
-]
-
-// Time Filter Options
-const timeFilterOptions = [
-  { title: 'Last 7 days', value: 7 },
-  { title: 'Last 30 days', value: 30 },
-  { title: 'Last 90 days', value: 90 }
-]
-
 // Utility Functions
-function formatDuration(seconds) {
-  if (!seconds) return '-'
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-  return `${minutes}m`
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  
-  // Format: DD/MM/YYYY, HH:mm:SS AM/PM
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  
-  let hours = date.getHours()
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
-  const ampm = hours >= 12 ? 'PM' : 'AM'
-  
-  hours = hours % 12
-  hours = hours ? hours : 12 // the hour '0' should be '12'
-  const formattedHours = String(hours).padStart(2, '0')
-  
-  return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`
-}
-
 function showError(message) {
   errorMessage.value = message
   errorSnackbar.value = true
-}
-
-// Debounce function for search input
-let debounceTimer = null
-function onPlayerFilterChange() {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    loadSessions(1)
-  }, 500)
 }
 
 // API Functions
@@ -452,11 +219,15 @@ onMounted(() => {
   refreshAll()
   
   // Initialize Socket.IO connection for real-time updates
-  socket = io(API_BASE.replace('/api', ''))
+  const socket = io(API_BASE.replace('/api', ''))
   
   // Listen for player updates to refresh session data
   socket.on('players:update', (data) => {
+    // Handle player notifications using composable
+    handlePlayersUpdate(data)
+    
     total.value = data.total;
+    
     // Only refresh if real-time updates are enabled
     if (realTimeUpdates.value) {
       // Refresh stats and sessions when players join/leave
@@ -476,12 +247,6 @@ onBeforeUnmount(() => {
   if (socket) {
     socket.disconnect()
     socket = null
-  }
-  
-  // Clear debounce timer
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
   }
 })
 </script>

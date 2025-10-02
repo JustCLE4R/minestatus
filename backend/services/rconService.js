@@ -55,9 +55,8 @@ class RconService {
       const total = parseInt(match[1], 10);
       const players = match[2] ? match[2].split(", ").filter((p) => p) : [];
 
-      // Update session tracking
-      sessionService.updatePlayers(players, this.lastPlayerList);
-      this.lastPlayerList = [...players]; // Update last known player list
+      // Update last known player list
+      this.lastPlayerList = [...players];
 
       // Get players with session information
       const playersWithSessions = sessionService.getPlayersWithSessions(players);

@@ -1,8 +1,10 @@
 const { PlayerSession } = require('../models');
+const CacheService = require('./cacheService');
 
 class SessionService {
   constructor() {
     this.playerSessions = new Map(); // Map of playerName -> { loginTime, isOnline }
+    this.sessionThreshold = 150 * 1000; // 2.5 minute minimum session duration to save to DB
     
     // Automatically clean up old sessions every hour
     this.cleanupInterval = setInterval(() => {
@@ -42,21 +44,39 @@ class SessionService {
   async playerLeft(playerName) {
     if (this.playerSessions.has(playerName)) {
       const session = this.playerSessions.get(playerName);
+      const now = new Date();
+      const sessionDuration = now.getTime() - session.loginTime;
 
-      // Update session end in DB if we have a session ID
-      if (session.sessionId) {
+      // Only save to database if session duration meets the threshold
+      if (session.sessionId && sessionDuration >= this.sessionThreshold) {
         try {
           await PlayerSession.update(
-            { sessionEnd: new Date(), isActive: false },
+            { sessionEnd: now, isActive: false },
             { where: { id: session.sessionId } }
           );
+          console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - Saved to DB`);
+
+          // tell session to refresh cache and emit update
+          CacheService.refreshCache();
+          
         } catch (error) {
           console.error(`❌ Error updating session for ${playerName}:`, error);
         }
+      } else if (session.sessionId) {
+        // Session too short - delete from database instead of updating
+        try {
+          await PlayerSession.destroy({
+            where: { id: session.sessionId }
+          });
+          console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - Too short, removed from DB`);
+        } catch (error) {
+          console.error(`❌ Error removing short session for ${playerName}:`, error);
+        }
+      } else {
+        console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - In-memory only`);
       }
 
       session.isOnline = false;
-      console.log(`📉 Session ended for ${playerName}`);
     }
   }
 
@@ -82,18 +102,6 @@ class SessionService {
     } else {
       return `${remainingMinutes}m`;
     }
-  }
-
-  // Update current online players and detect joins/leaves
-  async updatePlayers(currentPlayers, previousPlayers = []) {
-    const joined = currentPlayers.filter(p => !previousPlayers.includes(p));
-    const left = previousPlayers.filter(p => !currentPlayers.includes(p));
-
-    // Note: We don't call playerJoined/playerLeft here anymore
-    // LogService handles session tracking from log events for accuracy
-    // This method now just returns the join/leave detection for other uses
-    
-    return { joined, left };
   }
 
   // Get enhanced player data with session info
@@ -145,6 +153,17 @@ class SessionService {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
+  }
+
+  // Set minimum session duration threshold (in seconds)
+  setSessionThreshold(seconds) {
+    this.sessionThreshold = seconds * 1000;
+    console.log(`⏱️ Session threshold updated to ${seconds} seconds`);
+  }
+
+  // Get current session threshold in seconds
+  getSessionThreshold() {
+    return this.sessionThreshold / 1000;
   }
 }
 

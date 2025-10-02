@@ -1,0 +1,64 @@
+<template>
+  <v-row class="mb-6">
+    <v-col cols="12">
+      <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center">
+          <v-btn
+            icon
+            variant="text"
+            to="/"
+            class="mr-3"
+            size="large"
+          >
+            <v-icon>mdi-arrow-left</v-icon>
+          </v-btn>
+          <div>
+            <h1 class="text-h4 font-weight-bold mb-2">
+              🎮 Player Session History
+            </h1>
+            <p class="text-subtitle-1 text-medium-emphasis">
+              Track player activity and session statistics
+            </p>
+          </div>
+        </div>
+        <div class="text-right">
+          <v-chip
+            v-if="realTimeUpdates"
+            color="success"
+            variant="tonal"
+            size="small"
+            class="mb-2"
+          >
+            <v-icon start size="small">mdi-wifi</v-icon>
+            Live Updates
+          </v-chip>
+          <v-chip
+            v-else
+            color="grey"
+            variant="tonal"
+            size="small"
+            class="mb-2"
+          >
+            <v-icon start size="small">mdi-wifi-off</v-icon>
+            Manual Refresh
+          </v-chip>
+        </div>
+      </div>
+    </v-col>
+  </v-row>
+</template>
+
+<script setup>
+defineProps({
+  realTimeUpdates: {
+    type: Boolean,
+    default: true
+  }
+});
+</script>
+
+<style scoped>
+.text-h4 {
+  line-height: 1.2;
+}
+</style>

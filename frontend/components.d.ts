@@ -8,12 +8,16 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    OnlinePlayersCard: typeof import('./src/components/OnlinePlayersCard.vue')['default']
+    OnlinePlayersCard: typeof import('./src/components/index/OnlinePlayersCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ServerConsoleCard: typeof import('./src/components/ServerConsoleCard.vue')['default']
-    ServerStatusCard: typeof import('./src/components/ServerStatusCard.vue')['default']
-    SkillsLeaderboardCard: typeof import('./src/components/SkillsLeaderboardCard.vue')['default']
+    ServerConsoleCard: typeof import('./src/components/index/ServerConsoleCard.vue')['default']
+    ServerStatusCard: typeof import('./src/components/index/ServerStatusCard.vue')['default']
+    SessionFilters: typeof import('./src/components/sessions/SessionFilters.vue')['default']
+    SessionPageHeader: typeof import('./src/components/sessions/SessionPageHeader.vue')['default']
+    SessionsTable: typeof import('./src/components/sessions/SessionsTable.vue')['default']
+    SessionStatisticsCards: typeof import('./src/components/sessions/SessionStatisticsCards.vue')['default']
+    SkillsLeaderboardCard: typeof import('./src/components/index/SkillsLeaderboardCard.vue')['default']
     ToastNotifications: typeof import('./src/components/ToastNotifications.vue')['default']
   }
 }

@@ -42,28 +42,30 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { io } from "socket.io-client";
+import { useToasts } from '../composables/useToasts'
+import { usePlayerNotifications } from '../composables/usePlayerNotifications'
 
 // API Configuration
-const API_BASE = 'https://minestatus-backend.cle4r.my.id'
-// const API_BASE = 'http://localhost:3000' 
+// const API_BASE = 'https://minestatus-backend.cle4r.my.id'
+const API_BASE = 'http://localhost:3000' 
 
 // Import components
-import OnlinePlayersCard from "../components/OnlinePlayersCard.vue";
-import ServerConsoleCard from "../components/ServerConsoleCard.vue";
-import SkillsLeaderboardCard from "../components/SkillsLeaderboardCard.vue";
-import ServerStatusCard from "../components/ServerStatusCard.vue";
+import OnlinePlayersCard from "../components/index/OnlinePlayersCard.vue";
+import ServerConsoleCard from "../components/index/ServerConsoleCard.vue";
+import SkillsLeaderboardCard from "../components/index/SkillsLeaderboardCard.vue";
+import ServerStatusCard from "../components/index/ServerStatusCard.vue";
 import ToastNotifications from "../components/ToastNotifications.vue";
+
+// Use composables
+const { toasts } = useToasts()
+const { handlePlayersUpdate } = usePlayerNotifications()
 
 // Reactive data
 const total = ref(0);
 const players = ref([]);
 const playersWithSessions = ref([]);
-const previousPlayers = ref([]);
 const logs = ref([]);
-const toasts = ref([]);
 const skillsData = ref([]);
-let toastId = 0;
-let initialized = false; // track if we already handled the first update
 let sessionUpdateTimer = null;
 
 // Update page title based on player count
@@ -75,16 +77,6 @@ watch(
   },
   { immediate: true }
 );
-
-// Toast management
-function addToast(message, color = "primary") {
-  const id = ++toastId;
-  const toast = { id, message, color, show: true };
-  toasts.value.push(toast);
-  setTimeout(() => {
-    toasts.value = toasts.value.filter((t) => t.id !== id);
-  }, 3200);
-}
 
 // Session duration update timer
 function startSessionUpdateTimer() {
@@ -132,29 +124,16 @@ onMounted(() => {
   // }, 1000);
 
   socket.on("players:update", (data) => {
+    // Handle player notifications using composable
+    handlePlayersUpdate(data)
+    
     total.value = data.total;
-
-    const newPlayers = data.players;
-    const oldPlayers = previousPlayers.value;
+    players.value = data.players;
 
     // Update session data if available
     if (data.playersWithSessions) {
       playersWithSessions.value = data.playersWithSessions;
     }
-
-    // only show toasts after first initialization
-    if (initialized) {
-      const joined = newPlayers.filter((p) => !oldPlayers.includes(p));
-      const left = oldPlayers.filter((p) => !newPlayers.includes(p));
-
-      joined.forEach((p) => addToast(`${p} joined the game`, "green"));
-      left.forEach((p) => addToast(`${p} left the game`, "red"));
-    } else {
-      initialized = true; // first update = baseline, no toasts
-    }
-
-    players.value = newPlayers;
-    previousPlayers.value = [...newPlayers];
 
     // Start timer to update session durations every minute
     if (!sessionUpdateTimer && playersWithSessions.value.length > 0) {
@@ -163,6 +142,7 @@ onMounted(() => {
   });
 
   socket.on("skills:update", (data) => {
+    console.log("Received skills update:", data);
     if (data && data.skills) {
       skillsData.value = data.skills;
     }

@@ -7,6 +7,7 @@ class SocketController {
     this.lastData = { total: 0, players: [] };
   }
 
+  // Handle new client connection (initial data push)
   async handleConnection(socket, io) {
     console.log("Client connected:", socket.id);
 
