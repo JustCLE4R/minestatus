@@ -102,8 +102,8 @@ const { toasts } = useToasts()
 const { handlePlayersUpdate } = usePlayerNotifications()
 
 // API Configuration
-// const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
-const API_BASE = 'http://localhost:3000/api'
+const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
+// const API_BASE = 'http://localhost:3000/api'
 
 // Socket.IO connection
 let socket = null
@@ -235,11 +235,6 @@ async function onTimeFilterChange() {
     loadStats(),
     loadSessions(1) // Reset to first page when filter changes
   ])
-  
-  // Refresh charts if component is available
-  if (chartsComponent.value) {
-    chartsComponent.value.refreshCharts()
-  }
 }
 
 async function refreshAll() {

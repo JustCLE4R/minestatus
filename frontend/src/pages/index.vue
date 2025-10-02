@@ -46,8 +46,8 @@ import { useToasts } from '../composables/useToasts'
 import { usePlayerNotifications } from '../composables/usePlayerNotifications'
 
 // API Configuration
-// const API_BASE = 'https://minestatus-backend.cle4r.my.id'
-const API_BASE = 'http://localhost:3000'
+const API_BASE = 'https://minestatus-backend.cle4r.my.id'
+// const API_BASE = 'http://localhost:3000'
 
 // Import components
 import OnlinePlayersCard from "../components/index/OnlinePlayersCard.vue";

@@ -105,6 +105,7 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  Filler,
 } from 'chart.js'
 import { Line, Bar, Doughnut } from 'vue-chartjs'
 
@@ -118,7 +119,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Filler
 )
 
 // Props
@@ -134,8 +136,8 @@ const props = defineProps({
 })
 
 // API Configuration
-// const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
-const API_BASE = 'http://localhost:3000/api'
+const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
+// const API_BASE = 'http://localhost:3000/api'
 
 // Reactive data
 const chartData = ref({
@@ -363,37 +365,47 @@ async function loadChartData() {
   try {
     // Build URL parameters for timeFilter
     const timeParam = props.timeFilter !== null ? `?days=${props.timeFilter}` : ''
-    
-    // Load daily session data
-    const dailyResponse = await fetch(`${API_BASE}/sessions/analytics/daily${timeParam}`)
-    const dailyData = await dailyResponse.json()
-    if (dailyData.success) {
-      chartData.value.daily = dailyData.data
-    }
-
-    // Load hourly distribution
-    const hourlyResponse = await fetch(`${API_BASE}/sessions/analytics/hourly${timeParam}`)
-    const hourlyData = await hourlyResponse.json()
-    if (hourlyData.success) {
-      chartData.value.hourly = hourlyData.data
-    }
-
-    // Load duration distribution
-    const durationResponse = await fetch(`${API_BASE}/sessions/analytics/duration${timeParam}`)
-    const durationData = await durationResponse.json()
-    if (durationData.success) {
-      chartData.value.duration = durationData.data
-    }
-
-    // Load top players
     const topPlayersParam = props.timeFilter !== null ? `?days=${props.timeFilter}&limit=10` : '?limit=10'
-    const topPlayersResponse = await fetch(`${API_BASE}/sessions/analytics/top-players${topPlayersParam}`)
-    const topPlayersData = await topPlayersResponse.json()
+    
+    // Load all chart data in parallel and wait for all responses
+    const [dailyResponse, hourlyResponse, durationResponse, topPlayersResponse] = await Promise.all([
+      fetch(`${API_BASE}/sessions/analytics/daily${timeParam}`),
+      fetch(`${API_BASE}/sessions/analytics/hourly${timeParam}`),
+      fetch(`${API_BASE}/sessions/analytics/duration${timeParam}`),
+      fetch(`${API_BASE}/sessions/analytics/top-players${topPlayersParam}`)
+    ])
+
+    // Parse all responses in parallel
+    const [dailyData, hourlyData, durationData, topPlayersData] = await Promise.all([
+      dailyResponse.json(),
+      hourlyResponse.json(),
+      durationResponse.json(),
+      topPlayersResponse.json()
+    ])
+
+    // Update all chart data at once (batch update)
+    const newChartData = { ...chartData.value }
+    
+    if (dailyData.success) {
+      newChartData.daily = dailyData.data
+    }
+    
+    if (hourlyData.success) {
+      newChartData.hourly = hourlyData.data
+    }
+    
+    if (durationData.success) {
+      newChartData.duration = durationData.data
+    }
+    
     if (topPlayersData.success) {
-      chartData.value.topPlayers = topPlayersData.data
+      newChartData.topPlayers = topPlayersData.data
     }
 
-    // Force chart re-renders
+    // Single update to trigger all chart re-renders at once
+    chartData.value = newChartData
+
+    // Force chart re-renders after all data is loaded
     dailyChartKey.value++
     durationChartKey.value++
     hourlyChartKey.value++
@@ -411,7 +423,7 @@ watch(() => props.timeFilter, () => {
 
 // Lifecycle
 onMounted(() => {
-  loadChartData()
+  // loadChartData() // Moved to watcher above
 })
 
 // Expose methods for parent component
