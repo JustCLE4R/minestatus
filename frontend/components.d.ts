@@ -13,6 +13,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     ServerConsoleCard: typeof import('./src/components/index/ServerConsoleCard.vue')['default']
     ServerStatusCard: typeof import('./src/components/index/ServerStatusCard.vue')['default']
+    SessionAnalyticsCharts: typeof import('./src/components/sessions/SessionAnalyticsCharts.vue')['default']
     SessionFilters: typeof import('./src/components/sessions/SessionFilters.vue')['default']
     SessionPageHeader: typeof import('./src/components/sessions/SessionPageHeader.vue')['default']
     SessionsTable: typeof import('./src/components/sessions/SessionsTable.vue')['default']

@@ -47,7 +47,7 @@ import { usePlayerNotifications } from '../composables/usePlayerNotifications'
 
 // API Configuration
 // const API_BASE = 'https://minestatus-backend.cle4r.my.id'
-const API_BASE = 'http://localhost:3000' 
+const API_BASE = 'http://localhost:3000'
 
 // Import components
 import OnlinePlayersCard from "../components/index/OnlinePlayersCard.vue";
@@ -142,7 +142,6 @@ onMounted(() => {
   });
 
   socket.on("skills:update", (data) => {
-    console.log("Received skills update:", data);
     if (data && data.skills) {
       skillsData.value = data.skills;
     }

@@ -20,7 +20,7 @@
           :loading="loading"
           @refresh="refreshAll"
           @playerFilterChange="loadSessions(1)"
-          @update:timeFilter="loadStats"
+          @update:timeFilter="onTimeFilterChange"
           @update:activeOnly="loadSessions(1)"
         />
 
@@ -31,12 +31,18 @@
           :currentPage="currentPage"
           :itemsPerPage="itemsPerPage"
           :loading="loading"
+          :timeFilter="timeFilter"
           @update:currentPage="currentPage = $event"
           @update:itemsPerPage="itemsPerPage = $event"
           @updateOptions="loadSessions"
         />
 
-        <!-- TODO: Graphical Representation -->
+        <!-- Session Analytics Charts -->
+        <SessionAnalyticsCharts 
+          ref="chartsComponent"
+          :timeFilter="timeFilter"
+          :loading="loading"
+        />
 
         <!-- Toast Notifications -->
         <ToastNotifications :toasts="toasts" />
@@ -88,6 +94,7 @@ import SessionPageHeader from '../components/sessions/SessionPageHeader.vue'
 import SessionStatisticsCards from '../components/sessions/SessionStatisticsCards.vue'
 import SessionFilters from '../components/sessions/SessionFilters.vue'
 import SessionsTable from '../components/sessions/SessionsTable.vue'
+import SessionAnalyticsCharts from '../components/sessions/SessionAnalyticsCharts.vue'
 import ToastNotifications from '../components/ToastNotifications.vue'
 
 // Use composables
@@ -96,7 +103,7 @@ const { handlePlayersUpdate } = usePlayerNotifications()
 
 // API Configuration
 // const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
-const API_BASE = 'http://localhost:3000/api' 
+const API_BASE = 'http://localhost:3000/api'
 
 // Socket.IO connection
 let socket = null
@@ -111,9 +118,12 @@ const errorSnackbar = ref(false)
 const errorMessage = ref('')
 const realTimeUpdates = ref(true) // Track if real-time updates are enabled
 
+// Component references
+const chartsComponent = ref(null)
+
 // Filters
 const playerFilter = ref('')
-const timeFilter = ref(30)
+const timeFilter = ref(null) // Default to "All time"
 const activeOnly = ref(false)
 
 // Pagination
@@ -131,6 +141,11 @@ watch(
   { immediate: true }
 );
 
+// Watch for filter changes to reset pagination
+watch([timeFilter, playerFilter, activeOnly], () => {
+  currentPage.value = 1;
+}, { deep: true });
+
 // Utility Functions
 function showError(message) {
   errorMessage.value = message
@@ -140,7 +155,13 @@ function showError(message) {
 // API Functions
 async function loadStats() {
   try {
-    const response = await fetch(`${API_BASE}/sessions/stats?days=${timeFilter.value}`)
+    // Build URL with days parameter only if timeFilter is not null
+    let statsUrl = `${API_BASE}/sessions/stats`
+    if (timeFilter.value !== null) {
+      statsUrl += `?days=${timeFilter.value}`
+    }
+    
+    const response = await fetch(statsUrl)
     const data = await response.json()
     
     if (data.success) {
@@ -188,6 +209,7 @@ async function loadSessions(options = null) {
     let url = `${API_BASE}/sessions?page=${page}&limit=${limit}`
     if (playerFilter.value) url += `&playerName=${encodeURIComponent(playerFilter.value)}`
     if (activeOnly.value) url += `&activeOnly=true`
+    if (timeFilter.value !== null) url += `&days=${timeFilter.value}` // Only add days filter if not "All time"
 
     const response = await fetch(url)
     const data = await response.json()
@@ -207,11 +229,29 @@ async function loadSessions(options = null) {
   }
 }
 
+// Handle time filter changes - refresh both stats, sessions, and charts
+async function onTimeFilterChange() {
+  await Promise.all([
+    loadStats(),
+    loadSessions(1) // Reset to first page when filter changes
+  ])
+  
+  // Refresh charts if component is available
+  if (chartsComponent.value) {
+    chartsComponent.value.refreshCharts()
+  }
+}
+
 async function refreshAll() {
   await Promise.all([
     loadStats(),
     loadSessions()
   ])
+  
+  // Refresh charts if component is available
+  if (chartsComponent.value) {
+    chartsComponent.value.refreshCharts()
+  }
 }
 
 // Lifecycle

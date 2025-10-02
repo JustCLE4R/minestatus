@@ -12,7 +12,8 @@ class PlayerSessionController {
         playerName,
         startDate,
         endDate,
-        activeOnly
+        activeOnly,
+        days // Add days filter parameter
       } = req.query;
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -24,12 +25,21 @@ class PlayerSessionController {
         where.playerName = { [Op.like]: `%${playerName}%` };
       }
 
-      if (startDate) {
-        where.sessionStart = { [Op.gte]: new Date(startDate) };
-      }
+      // Handle days filter - if provided, calculate start date from days
+      if (days) {
+        const calculatedStartDate = new Date();
+        calculatedStartDate.setDate(calculatedStartDate.getDate() - parseInt(days));
+        where.sessionStart = { [Op.gte]: calculatedStartDate };
+        console.log(`Filtering sessions to last ${days} days from ${calculatedStartDate.toISOString()}`);
+      } else {
+        // Use explicit start/end dates if provided and no days filter
+        if (startDate) {
+          where.sessionStart = { [Op.gte]: new Date(startDate) };
+        }
 
-      if (endDate) {
-        where.sessionStart = { [Op.lte]: new Date(endDate) };
+        if (endDate) {
+          where.sessionStart = { [Op.lte]: new Date(endDate) };
+        }
       }
 
       if (activeOnly === 'true') {
@@ -42,6 +52,8 @@ class PlayerSessionController {
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
+
+      console.log(`Found ${result.count} total sessions matching criteria`);
 
       // Add calculated duration to each session
       const sessionsWithDuration = result.rows.map(session => {
@@ -287,6 +299,298 @@ class PlayerSessionController {
       res.status(500).json({
         success: false,
         error: 'Failed to end session'
+      });
+    }
+  }
+
+  // GET /api/sessions/analytics/daily - Get daily session analytics
+  async getDailyAnalytics(req, res) {
+    try {
+      const { days } = req.query;
+      
+      // Build where clause - only add date filter if days is provided
+      const where = {
+        sessionEnd: { [Op.not]: null }
+      };
+      
+      if (days) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(days));
+        where.sessionStart = { [Op.gte]: startDate };
+        console.log(`Loading daily analytics for ${days} days from ${startDate.toISOString()}`);
+      } else {
+        console.log('Loading daily analytics for all time');
+      }
+
+      // Try using Sequelize for better compatibility
+      const sessions = await PlayerSession.findAll({
+        where,
+        attributes: ['sessionStart', 'sessionEnd', 'playerName']
+      });
+
+      console.log(`Found ${sessions.length} sessions for analytics`);
+
+      // For 1 day, use hourly granularity; for longer periods, use daily
+      const useHourlyGranularity = parseInt(days) === 1;
+      const groupedData = {};
+
+      sessions.forEach(session => {
+        let key;
+        if (useHourlyGranularity) {
+          // Group by hour for 24-hour view
+          const date = new Date(session.sessionStart);
+          key = `${date.toISOString().split('T')[0]} ${date.getHours().toString().padStart(2, '0')}:00`;
+        } else {
+          // Group by date for longer periods
+          key = session.sessionStart.toISOString().split('T')[0];
+        }
+
+        if (!groupedData[key]) {
+          groupedData[key] = { 
+            date: key, 
+            sessions: 0, 
+            uniquePlayers: new Set() 
+          };
+        }
+        groupedData[key].sessions++;
+        groupedData[key].uniquePlayers.add(session.playerName);
+      });
+
+      // Convert to array and format
+      const result = Object.values(groupedData)
+        .map(group => ({
+          date: group.date,
+          sessions: group.sessions,
+          uniquePlayers: group.uniquePlayers.size
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      console.log(`Returning ${result.length} data points for daily analytics`);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('❌ Error in getDailyAnalytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get daily analytics'
+      });
+    }
+  }
+
+  // GET /api/sessions/analytics/hourly - Get hourly session distribution
+  async getHourlyAnalytics(req, res) {
+    try {
+      const { days } = req.query;
+      
+      // Build where clause - only add date filter if days is provided
+      const where = {
+        sessionEnd: { [Op.not]: null }
+      };
+      
+      if (days) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(days));
+        where.sessionStart = { [Op.gte]: startDate };
+      }
+
+      const sessions = await PlayerSession.findAll({
+        where,
+        attributes: ['sessionStart']
+      });
+
+      // Initialize hourly data
+      const hourlyData = Array.from({ length: 24 }, (_, hour) => ({
+        hour,
+        sessions: 0
+      }));
+
+      // Count sessions by hour
+      sessions.forEach(session => {
+        const hour = session.sessionStart.getHours();
+        hourlyData[hour].sessions++;
+      });
+
+      res.json({
+        success: true,
+        data: hourlyData
+      });
+    } catch (error) {
+      console.error('❌ Error in getHourlyAnalytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get hourly analytics'
+      });
+    }
+  }
+
+  // GET /api/sessions/analytics/duration - Get session duration distribution
+  async getDurationAnalytics(req, res) {
+    try {
+      const { days } = req.query;
+      
+      // Build where clause - only add date filter if days is provided
+      const where = {
+        sessionEnd: { [Op.not]: null }
+      };
+      
+      if (days) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(days));
+        where.sessionStart = { [Op.gte]: startDate };
+      }
+
+      const sessions = await PlayerSession.findAll({
+        where,
+        attributes: ['sessionStart', 'sessionEnd']
+      });
+
+      // Calculate duration distribution
+      const durationBuckets = {
+        '< 5m': 0,
+        '5-15m': 0,
+        '15-30m': 0,
+        '30-60m': 0,
+        '1-2h': 0,
+        '2-4h': 0,
+        '4h+': 0
+      };
+
+      sessions.forEach(session => {
+        const duration = (new Date(session.sessionEnd) - new Date(session.sessionStart)) / (1000 * 60); // minutes
+        
+        if (duration < 5) durationBuckets['< 5m']++;
+        else if (duration < 15) durationBuckets['5-15m']++;
+        else if (duration < 30) durationBuckets['15-30m']++;
+        else if (duration < 60) durationBuckets['30-60m']++;
+        else if (duration < 120) durationBuckets['1-2h']++;
+        else if (duration < 240) durationBuckets['2-4h']++;
+        else durationBuckets['4h+']++;
+      });
+
+      const result = Object.entries(durationBuckets).map(([label, count]) => ({
+        label,
+        count
+      }));
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('❌ Error in getDurationAnalytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get duration analytics'
+      });
+    }
+  }
+
+  // GET /api/sessions/analytics/top-players - Get top players by total playtime
+  async getTopPlayersAnalytics(req, res) {
+    try {
+      const { days, limit = 10 } = req.query;
+      
+      // Build where clause - only add date filter if days is provided
+      const where = {
+        sessionEnd: { [Op.not]: null }
+      };
+      
+      if (days) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(days));
+        where.sessionStart = { [Op.gte]: startDate };
+      }
+
+      const sessions = await PlayerSession.findAll({
+        where,
+        attributes: ['playerName', 'sessionStart', 'sessionEnd']
+      });
+
+      // Group by player and calculate totals
+      const playerStats = {};
+      sessions.forEach(session => {
+        const playerName = session.playerName;
+        const duration = (new Date(session.sessionEnd) - new Date(session.sessionStart)) / (1000 * 60 * 60); // hours
+        
+        if (!playerStats[playerName]) {
+          playerStats[playerName] = {
+            playerName,
+            sessionCount: 0,
+            totalHours: 0
+          };
+        }
+        
+        playerStats[playerName].sessionCount++;
+        playerStats[playerName].totalHours += duration;
+      });
+
+      // Convert to array, sort by total hours, and limit
+      const result = Object.values(playerStats)
+        .sort((a, b) => b.totalHours - a.totalHours)
+        .slice(0, parseInt(limit))
+        .map(player => ({
+          ...player,
+          totalHours: Math.round(player.totalHours * 100) / 100 // Round to 2 decimal places
+        }));
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('❌ Error in getTopPlayersAnalytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get top players analytics'
+      });
+    }
+  }
+
+  // POST /api/sessions/generate-test-data - Generate test session data (for development)
+  async generateTestData(req, res) {
+    try {
+      const testPlayers = ['TestPlayer1', 'TestPlayer2', 'TestPlayer3', 'TestPlayer4'];
+      const now = new Date();
+      const testSessions = [];
+
+      // Generate sessions for the last 2 days with various durations
+      for (let i = 0; i < 48; i++) { // 48 hours
+        const sessionStart = new Date(now.getTime() - (i * 60 * 60 * 1000)); // i hours ago
+        
+        // Random number of sessions per hour (0-3)
+        const sessionsThisHour = Math.floor(Math.random() * 4);
+        
+        for (let j = 0; j < sessionsThisHour; j++) {
+          const player = testPlayers[Math.floor(Math.random() * testPlayers.length)];
+          const sessionStartTime = new Date(sessionStart.getTime() + (Math.random() * 60 * 60 * 1000)); // Random minute within the hour
+          const sessionDuration = Math.random() * 180 + 10; // 10-190 minutes
+          const sessionEndTime = new Date(sessionStartTime.getTime() + (sessionDuration * 60 * 1000));
+
+          testSessions.push({
+            playerName: player,
+            sessionStart: sessionStartTime,
+            sessionEnd: sessionEndTime,
+            isActive: false
+          });
+        }
+      }
+
+      // Insert test sessions
+      await PlayerSession.bulkCreate(testSessions);
+
+      res.json({
+        success: true,
+        message: `Generated ${testSessions.length} test sessions`,
+        data: { count: testSessions.length }
+      });
+    } catch (error) {
+      console.error('❌ Error in generateTestData:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate test data'
       });
     }
   }

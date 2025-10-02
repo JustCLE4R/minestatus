@@ -1,7 +1,25 @@
 <template>
-  <v-card>
-    <v-card-title>
-      Session History
+  <v-card class="mb-6">
+    <v-card-title class="d-flex align-center justify-space-between">
+      <span>Session History</span>
+      <v-chip
+        v-if="timeFilter !== null"
+        size="small" 
+        color="info" 
+        variant="tonal"
+      >
+        <v-icon start size="small">mdi-filter</v-icon>
+        {{ timeFilter === 1 ? 'Last 24 hours' : `Last ${timeFilter} days` }}
+      </v-chip>
+      <v-chip
+        v-else
+        size="small" 
+        color="grey" 
+        variant="tonal"
+      >
+        <v-icon start size="small">mdi-history</v-icon>
+        All time
+      </v-chip>
     </v-card-title>
 
     <v-data-table-server
@@ -85,6 +103,10 @@ defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  timeFilter: {
+    type: [Number, null],
+    default: null
   }
 });
 

@@ -72,8 +72,8 @@ defineProps({
     default: ''
   },
   timeFilter: {
-    type: Number,
-    default: 30
+    type: [Number, null],
+    default: null
   },
   activeOnly: {
     type: Boolean,
@@ -100,6 +100,8 @@ const emit = defineEmits([
 
 // Time Filter Options
 const timeFilterOptions = [
+  { title: 'All time', value: null },
+  { title: 'Last 24 hours', value: 1 },
   { title: 'Last 7 days', value: 7 },
   { title: 'Last 30 days', value: 30 },
   { title: 'Last 90 days', value: 90 }
