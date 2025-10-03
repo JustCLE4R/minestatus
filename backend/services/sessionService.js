@@ -76,7 +76,8 @@ class SessionService {
         console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - In-memory only`);
       }
 
-      session.isOnline = false;
+      // Remove the session from memory immediately after player leaves
+      this.playerSessions.delete(playerName);
     }
   }
 
