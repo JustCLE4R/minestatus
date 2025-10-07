@@ -7,6 +7,7 @@ const cors = require("cors");
 // Services
 const rconService = require('./services/rconService');
 const logService = require('./services/logService');
+const performanceService = require('./services/performanceService');
 
 // Controllers
 const socketController = require('./controllers/socketController');
@@ -67,4 +68,7 @@ server.listen(PORT, async () => {
   
   // Initialize log service (starts watcher immediately for session tracking)
   logService.initialize();
+  
+  // Performance service starts automatically when imported
+  console.log('📊 Performance monitoring initialized');
 });

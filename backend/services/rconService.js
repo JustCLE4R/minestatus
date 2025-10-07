@@ -1,5 +1,6 @@
 const { Rcon } = require("rcon-client");
 const sessionService = require('./sessionService');
+const performanceService = require('./performanceService');
 
 class RconService {
   constructor() {
@@ -66,6 +67,22 @@ class RconService {
       console.error("RCON send error:", err);
       this.rconConnected = false;
       return { total: 0, players: [], playersWithSessions: [] };
+    }
+  }
+
+  async getServerPerformance() {
+    if (!this.rconConnected) {
+      await this.connect();
+      if (!this.rconConnected) return null;
+    }
+
+    try {
+      const response = await this.rcon.send("tabtps:tps");
+      return performanceService.parseTabTpsResponse(response);
+    } catch (err) {
+      console.error("❌ RCON performance command error:", err);
+      this.rconConnected = false;
+      return null;
     }
   }
 }

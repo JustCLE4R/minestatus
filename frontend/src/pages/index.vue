@@ -18,14 +18,21 @@
           </v-col>
         </v-row>
 
-        <!-- Second Row: Skills Leaderboard -->
+        <!-- Second Row: Server Performance -->
+        <v-row class="mb-4">
+          <v-col cols="12">
+            <ServerPerformanceCard />
+          </v-col>
+        </v-row>
+
+        <!-- Third Row: Skills Leaderboard -->
         <v-row class="mb-4">
           <v-col cols="12">
             <SkillsLeaderboardCard :skillsData="skillsData" />
           </v-col>
         </v-row>
 
-        <!-- Third Row: Server Console -->
+        <!-- Fourth Row: Server Console -->
         <v-row class="mb-4">
           <v-col cols="12">
             <ServerConsoleCard :logs="logs" />
@@ -46,14 +53,15 @@ import { useToasts } from '../composables/useToasts'
 import { usePlayerNotifications } from '../composables/usePlayerNotifications'
 
 // API Configuration
-const API_BASE = 'https://minestatus-backend.cle4r.my.id'
-// const API_BASE = 'http://localhost:3000'
+// const API_BASE = 'https://minestatus-backend.cle4r.my.id'
+const API_BASE = 'http://localhost:3000'
 
 // Import components
 import OnlinePlayersCard from "../components/index/OnlinePlayersCard.vue";
 import ServerConsoleCard from "../components/index/ServerConsoleCard.vue";
 import SkillsLeaderboardCard from "../components/index/SkillsLeaderboardCard.vue";
 import ServerStatusCard from "../components/index/ServerStatusCard.vue";
+import ServerPerformanceCard from "../components/index/ServerPerformanceCard.vue";
 import ToastNotifications from "../components/ToastNotifications.vue";
 
 // Use composables
