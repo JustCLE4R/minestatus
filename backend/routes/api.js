@@ -15,7 +15,7 @@ router.get('/sessions/analytics/duration', playerSessionController.getDurationAn
 router.get('/sessions/analytics/top-players', playerSessionController.getTopPlayersAnalytics);
 
 // Test data generation (for development only)
-router.post('/sessions/generate-test-data', playerSessionController.generateTestData);
+// router.post('/sessions/generate-test-data', playerSessionController.generateTestData);
 
 // Manual session control (for testing/admin)
 // router.post('/sessions/start', playerSessionController.startSession);

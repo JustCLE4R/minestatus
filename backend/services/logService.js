@@ -3,6 +3,7 @@ const readline = require("readline");
 const chokidar = require("chokidar");
 const sessionService = require('./sessionService');
 const rconService = require('./rconService');
+const logger = require('../utils/logger');
 
 class LogService {
   constructor() {
@@ -12,11 +13,12 @@ class LogService {
     this.io = null;
     this.watcher = null;
     this.isWatching = false;
+    this.log = logger.createLogger('LOG');
   }
 
   setSocketIO(io) {
     this.io = io;
-    console.log("📡 Socket.IO instance set for log service");
+    this.log.info("📡 Socket.IO instance set for log service");
   }
 
   getCachedLogs() {
@@ -52,7 +54,7 @@ class LogService {
     if (joinMatch) {
       const playerName = joinMatch[1];
       sessionService.playerJoined(playerName);
-      console.log(`🎮 Player joined: ${playerName}`);
+      this.log.info(`🎮 Player joined: ${playerName}`);
       
       // Trigger player update if we have connected clients
       if (this.io) {
@@ -68,7 +70,7 @@ class LogService {
     if (leaveMatch) {
       const playerName = leaveMatch[1];
       sessionService.playerLeft(playerName);
-      console.log(`👋 Player left: ${playerName}`);
+      this.log.info(`👋 Player left: ${playerName}`);
       
       // Trigger player update if we have connected clients
       if (this.io) {
@@ -86,7 +88,7 @@ class LogService {
         
         if (this.io) {
           this.io.emit("players:update", data);
-          console.log("📡 Broadcast player update due to log event:", data.total, "players");
+          this.log.debug("📡 Broadcast player update due to log event:", data.total, "players");
         }
       } catch (error) {
         console.error("❌ Error triggering player update:", error);
@@ -96,11 +98,11 @@ class LogService {
 
   startWatcher() {
     if (this.isWatching) {
-      console.log("📄 Log watcher already running");
+      this.log.warn("📄 Log watcher already running");
       return;
     }
 
-    console.log("👁️ Starting log file watcher (always active)...");
+    this.log.info("👁️ Starting log file watcher (always active)...");
     this.isWatching = true;
 
     // Initialize cached logs from existing file
@@ -117,7 +119,7 @@ class LogService {
           this.addLogLine(line, false, false); // don't broadcast initial logs and don't check events
         });
       } else {
-        console.log("⚠️ Log file not found, will create watcher anyway:", this.LOG_FILE);
+        this.log.warn("⚠️ Log file not found, will create watcher anyway:", this.LOG_FILE);
       }
     });
 
@@ -160,15 +162,15 @@ class LogService {
       this.watcher.close();
       this.watcher = null;
       this.isWatching = false;
-      console.log("👁️‍🗨️ Log watcher stopped");
+      this.log.info("👁️‍🗨️ Log watcher stopped");
     }
   }
 
   // Initialize the log service - to be called at startup
   initialize() {
-    console.log("🔧 Initializing log service...");
+    this.log.info("🔧 Initializing log service...");
     this.startWatcher();
-    console.log("✅ Log service initialized - now tracking player sessions continuously");
+    this.log.info("✅ Log service initialized - now tracking player sessions continuously");
   }
 }
 

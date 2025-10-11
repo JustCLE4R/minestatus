@@ -1,22 +1,20 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container>
-        <!-- Top Row: Online Players and Server Logo -->
-        <v-row class="mb-4" align="stretch">
-          <v-col cols="12" md="6" class="d-flex">
-            <ServerStatusCard class="flex-fill" />
-          </v-col>
+  <v-container>
+    <!-- Top Row: Online Players and Server Logo -->
+    <v-row class="mb-4" align="stretch">
+      <v-col cols="12" md="6" class="d-flex">
+        <ServerStatusCard class="flex-fill" />
+      </v-col>
 
-          <v-col cols="12" md="6" class="d-flex">
-            <OnlinePlayersCard 
-              :total="total" 
-              :players="players" 
-              :playersWithSessions="playersWithSessions" 
-              class="flex-fill" 
-            />
-          </v-col>
-        </v-row>
+      <v-col cols="12" md="6" class="d-flex">
+        <OnlinePlayersCard 
+          :total="total" 
+          :players="players" 
+          :playersWithSessions="playersWithSessions" 
+          class="flex-fill" 
+        />
+      </v-col>
+    </v-row>
 
         <!-- Second Row: Skills Leaderboard -->
         <v-row class="mb-4">
@@ -32,11 +30,9 @@
           </v-col>
         </v-row>
 
-        <!-- Toast Notifications -->
-        <ToastNotifications :toasts="toasts" />
-      </v-container>
-    </v-main>
-  </v-app>
+    <!-- Toast Notifications -->
+    <ToastNotifications :toasts="toasts" />
+  </v-container>
 </template>
 
 <script setup>
@@ -46,8 +42,7 @@ import { useToasts } from '../composables/useToasts'
 import { usePlayerNotifications } from '../composables/usePlayerNotifications'
 
 // API Configuration
-const API_BASE = 'https://minestatus-backend.cle4r.my.id'
-// const API_BASE = 'http://localhost:3000'
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://minestatus-backend.cle4r.my.id'
 
 // Import components
 import OnlinePlayersCard from "../components/index/OnlinePlayersCard.vue";

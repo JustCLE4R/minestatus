@@ -1,9 +1,7 @@
 <template>
-  <v-app>
-    <v-main>
-      <v-container>
-        <!-- Page Header -->
-        <SessionPageHeader :realTimeUpdates="realTimeUpdates" />
+  <v-container>
+    <!-- Page Header -->
+    <SessionPageHeader :realTimeUpdates="realTimeUpdates" />
 
         <!-- Statistics Cards -->
         <SessionStatisticsCards 
@@ -77,8 +75,6 @@
           </template>
         </v-snackbar>
       </v-container>
-    </v-main>
-  </v-app>
 </template>
 
 <script setup>
@@ -102,8 +98,7 @@ const { toasts } = useToasts()
 const { handlePlayersUpdate } = usePlayerNotifications()
 
 // API Configuration
-const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
-// const API_BASE = 'http://localhost:3000/api'
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://minestatus-backend.cle4r.my.id'
 
 // Socket.IO connection
 let socket = null
@@ -156,7 +151,7 @@ function showError(message) {
 async function loadStats() {
   try {
     // Build URL with days parameter only if timeFilter is not null
-    let statsUrl = `${API_BASE}/sessions/stats`
+    let statsUrl = `${API_BASE}/api/sessions/stats`
     if (timeFilter.value !== null) {
       statsUrl += `?days=${timeFilter.value}`
     }
@@ -171,7 +166,7 @@ async function loadStats() {
     }
 
     // Load active sessions count
-    const activeResponse = await fetch(`${API_BASE}/sessions/active`)
+    const activeResponse = await fetch(`${API_BASE}/api/sessions/active`)
     const activeData = await activeResponse.json()
     if (activeData.success) {
       activeSessionsCount.value = activeData.data.count
@@ -206,7 +201,7 @@ async function loadSessions(options = null) {
       limit = 10000; // Use a large number instead of -1
     }
     
-    let url = `${API_BASE}/sessions?page=${page}&limit=${limit}`
+    let url = `${API_BASE}/api/sessions?page=${page}&limit=${limit}`
     if (playerFilter.value) url += `&playerName=${encodeURIComponent(playerFilter.value)}`
     if (activeOnly.value) url += `&activeOnly=true`
     if (timeFilter.value !== null) url += `&days=${timeFilter.value}` // Only add days filter if not "All time"

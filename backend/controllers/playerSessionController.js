@@ -1,10 +1,15 @@
 const { PlayerSession } = require('../models');
 const { Op } = require('sequelize');
 const sessionService = require('../services/sessionService');
+const logger = require('../utils/logger');
 
 class PlayerSessionController {
+  constructor() {
+    this.log = logger.createLogger('SESSION_CTRL');
+  }
+  
   // GET /api/sessions - Get all sessions with pagination and filters
-  async getAllSessions(req, res) {
+  getAllSessions = async (req, res) => {
     try {
       const {
         page = 1,
@@ -30,7 +35,7 @@ class PlayerSessionController {
         const calculatedStartDate = new Date();
         calculatedStartDate.setDate(calculatedStartDate.getDate() - parseInt(days));
         where.sessionStart = { [Op.gte]: calculatedStartDate };
-        console.log(`Filtering sessions to last ${days} days from ${calculatedStartDate.toISOString()}`);
+        this.log.debug(`Filtering sessions to last ${days} days from ${calculatedStartDate.toISOString()}`);
       } else {
         // Use explicit start/end dates if provided and no days filter
         if (startDate) {
@@ -53,7 +58,7 @@ class PlayerSessionController {
         offset: parseInt(offset)
       });
 
-      console.log(`Found ${result.count} total sessions matching criteria`);
+      this.log.debug(`Found ${result.count} total sessions matching criteria`);
 
       // Add calculated duration to each session
       const sessionsWithDuration = result.rows.map(session => {
@@ -90,7 +95,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/player/:playerName - Get sessions for specific player
-  async getPlayerHistory(req, res) {
+  getPlayerHistory = async (req, res) => {
     try {
       const { playerName } = req.params;
       const { page = 1, limit = 50 } = req.query;
@@ -140,7 +145,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/active - Get currently active sessions
-  async getActiveSessions(req, res) {
+  getActiveSessions = async (req, res) => {
     try {
       const activeSessions = await PlayerSession.findAll({
         where: { isActive: true },
@@ -176,7 +181,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/stats - Get session statistics
-  async getSessionStats(req, res) {
+  getSessionStats = async (req, res) => {
     try {
       const { playerName, days = 30 } = req.query;
 
@@ -250,7 +255,7 @@ class PlayerSessionController {
   }
 
   // POST /api/sessions/start - Manually start a session (for testing)
-  async startSession(req, res) {
+  startSession = async (req, res) => {
     try {
       const { playerName } = req.body;
 
@@ -277,7 +282,7 @@ class PlayerSessionController {
   }
 
   // POST /api/sessions/end - Manually end a session (for testing)
-  async endSession(req, res) {
+  endSession = async (req, res) => {
     try {
       const { playerName } = req.body;
 
@@ -304,7 +309,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/analytics/daily - Get daily session analytics
-  async getDailyAnalytics(req, res) {
+  getDailyAnalytics = async (req, res) => {
     try {
       const { days } = req.query;
       
@@ -317,9 +322,9 @@ class PlayerSessionController {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - parseInt(days));
         where.sessionStart = { [Op.gte]: startDate };
-        console.log(`Loading daily analytics for ${days} days from ${startDate.toISOString()}`);
+        this.log.debug(`Loading daily analytics for ${days} days from ${startDate.toISOString()}`);
       } else {
-        console.log('Loading daily analytics for all time');
+        this.log.debug('Loading daily analytics for all time');
       }
 
       // Try using Sequelize for better compatibility
@@ -328,7 +333,7 @@ class PlayerSessionController {
         attributes: ['sessionStart', 'sessionEnd', 'playerName']
       });
 
-      console.log(`Found ${sessions.length} sessions for analytics`);
+      this.log.debug(`Found ${sessions.length} sessions for analytics`);
 
       // For 1 day, use hourly granularity; for longer periods, use daily
       const useHourlyGranularity = parseInt(days) === 1;
@@ -365,7 +370,7 @@ class PlayerSessionController {
         }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
-      console.log(`Returning ${result.length} data points for daily analytics`);
+      this.log.debug(`Returning ${result.length} data points for daily analytics`);
 
       res.json({
         success: true,
@@ -381,7 +386,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/analytics/hourly - Get hourly session distribution
-  async getHourlyAnalytics(req, res) {
+  getHourlyAnalytics = async (req, res) => {
     try {
       const { days } = req.query;
       
@@ -427,7 +432,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/analytics/duration - Get session duration distribution
-  async getDurationAnalytics(req, res) {
+  getDurationAnalytics = async (req, res) => {
     try {
       const { days } = req.query;
       
@@ -489,7 +494,7 @@ class PlayerSessionController {
   }
 
   // GET /api/sessions/analytics/top-players - Get top players by total playtime
-  async getTopPlayersAnalytics(req, res) {
+  getTopPlayersAnalytics = async (req, res) => {
     try {
       const { days, limit = 10 } = req.query;
       
@@ -550,7 +555,7 @@ class PlayerSessionController {
   }
 
   // POST /api/sessions/generate-test-data - Generate test session data (for development)
-  async generateTestData(req, res) {
+  generateTestData = async (req, res) => {
     try {
       const testPlayers = ['TestPlayer1', 'TestPlayer2', 'TestPlayer3', 'TestPlayer4'];
       const now = new Date();

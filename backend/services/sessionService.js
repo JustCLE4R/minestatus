@@ -1,10 +1,12 @@
 const { PlayerSession } = require('../models');
 const CacheService = require('./cacheService');
+const logger = require('../utils/logger');
 
 class SessionService {
   constructor() {
     this.playerSessions = new Map(); // Map of playerName -> { loginTime, isOnline }
     this.sessionThreshold = 150 * 1000; // 2.5 minute minimum session duration to save to DB
+    this.log = logger.createLogger('SESSION');
     
     // Automatically clean up old sessions every hour
     this.cleanupInterval = setInterval(() => {
@@ -28,7 +30,7 @@ class SessionService {
         loginTime: now.getTime(), // Store as timestamp for consistency
         isOnline: true
       });
-      console.log(`📈 Session started for ${playerName} at ${now.toISOString()}`);
+      this.log.info(`📈 Session started for ${playerName} at ${now.toISOString()}`);
     } catch (error) {
       console.error(`❌ Error creating session for ${playerName}:`, error);
       // Fallback to in-memory only tracking
@@ -54,7 +56,7 @@ class SessionService {
             { sessionEnd: now, isActive: false },
             { where: { id: session.sessionId } }
           );
-          console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - Saved to DB`);
+          this.log.info(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - Saved to DB`);
 
           // tell session to refresh cache and emit update
           CacheService.refreshCache();
@@ -68,12 +70,12 @@ class SessionService {
           await PlayerSession.destroy({
             where: { id: session.sessionId }
           });
-          console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - Too short, removed from DB`);
+          this.log.info(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - Too short, removed from DB`);
         } catch (error) {
           console.error(`❌ Error removing short session for ${playerName}:`, error);
         }
       } else {
-        console.log(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - In-memory only`);
+        this.log.info(`📉 Session ended for ${playerName} (${Math.floor(sessionDuration / 1000)}s) - In-memory only`);
       }
 
       // Remove the session from memory immediately after player leaves
@@ -128,7 +130,7 @@ class SessionService {
     }
     
     if (cleanedCount > 0) {
-      console.log(`🧹 Cleaned up ${cleanedCount} old session(s)`);
+      this.log.info(`🧹 Cleaned up ${cleanedCount} old session(s)`);
     }
   }
 
@@ -159,7 +161,7 @@ class SessionService {
   // Set minimum session duration threshold (in seconds)
   setSessionThreshold(seconds) {
     this.sessionThreshold = seconds * 1000;
-    console.log(`⏱️ Session threshold updated to ${seconds} seconds`);
+    this.log.info(`⏱️ Session threshold updated to ${seconds} seconds`);
   }
 
   // Get current session threshold in seconds

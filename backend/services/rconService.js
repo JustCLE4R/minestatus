@@ -1,11 +1,13 @@
 const { Rcon } = require("rcon-client");
 const sessionService = require('./sessionService');
+const logger = require('../utils/logger');
 
 class RconService {
   constructor() {
     this.rcon = null;
     this.rconConnected = false;
     this.lastPlayerList = []; // Track previous player list for session tracking
+    this.log = logger.createLogger('RCON');
   }
 
   async connect() {
@@ -19,10 +21,10 @@ class RconService {
       });
 
       this.rconConnected = true;
-      console.log("✅ RCON connected");
+      this.log.info("✅ RCON connected");
 
       this.rcon.on("end", () => {
-        console.log("⚠️ RCON connection closed, retrying in 5s...");
+        this.log.warn("⚠️ RCON connection closed, retrying in 5s...");
         this.rconConnected = false;
         setTimeout(() => this.connect(), 5000);
       });

@@ -1,5 +1,6 @@
 const { Skill, PlayerSession, User } = require('../models');
 const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 class CacheService {
   constructor() {
@@ -12,6 +13,7 @@ class CacheService {
     
     // Store io instance to emit updates when cache refreshes
     this.io = null;
+    this.log = logger.createLogger('CACHE');
   }
 
   // Method to set the io instance from socketController
@@ -24,12 +26,12 @@ class CacheService {
     
     // Return cached data if it's still fresh
     if (this.skillsCache.data && (now - this.skillsCache.lastUpdated) < this.skillsCache.ttl) {
-      console.log("📦 Returning cached skills/users data");
+      this.log.debug("📦 Returning cached skills/users data");
       return this.skillsCache.data;
     }
     
     // Fetch fresh data and update cache
-    console.log("🔄 Fetching fresh skills/users data from database");
+    this.log.debug("🔄 Fetching fresh skills/users data from database");
     try {
       // Get skills data with user info
       const skillData = await Skill.findAll({
@@ -83,7 +85,7 @@ class CacheService {
       
       // Emit update to connected clients immediately when cache expires and refreshes
       if (this.io && this.io.engine.clientsCount > 0) {
-        console.log("📡 Broadcasting skills update (cache expired and refreshed)");
+        this.log.debug("📡 Broadcasting skills update (cache expired and refreshed)");
         this.io.emit("skills:update", this.skillsCache.data);
       }
       
@@ -97,7 +99,7 @@ class CacheService {
 
   // Method to manually invalidate cache (useful for external triggers)
   invalidateSkillsCache() {
-    console.log("🗑️ Skills cache invalidated manually");
+    this.log.info("🗑️ Skills cache invalidated manually");
     this.skillsCache.lastUpdated = 0;
   }
 
@@ -115,12 +117,12 @@ class CacheService {
   // Method to update cache TTL
   setCacheTTL(ttl) {
     this.skillsCache.ttl = ttl;
-    console.log(`🕐 Cache TTL updated to ${ttl}ms`);
+    this.log.info(`🕐 Cache TTL updated to ${ttl}ms`);
   }
 
   // Method to force refresh cache
   async refreshCache() {
-    console.log("🔄 Force refreshing cache...");
+    this.log.info("🔄 Force refreshing cache...");
     this.skillsCache.lastUpdated = 0;
     return await this.getSkillsAndUsers();
   }

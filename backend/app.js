@@ -4,18 +4,24 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 
+// Utils
+const logger = require('./utils/logger');
+
 // Services
 const rconService = require('./services/rconService');
 const logService = require('./services/logService');
+const cmsService = require('./services/cmsService');
 
 // Controllers
 const socketController = require('./controllers/socketController');
 
 // Routes
 const apiRoutes = require('./routes/api');
+const cmsRoutes = require('./routes/cms');
 
 const app = express();
 const server = http.createServer(app);
+const log = logger.createLogger('APP');
 const io = new Server(server, {
   cors: {
     origin: [
@@ -51,6 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use('/api', apiRoutes);
+app.use('/api/cms', cmsRoutes);
 
 // Initialize services
 logService.setSocketIO(io);
@@ -62,9 +69,25 @@ io.on("connection", (socket) => {
 
 // Start server
 server.listen(PORT, async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  log.info(`🚀 Server running on port ${PORT}`);
   await rconService.connect();
   
   // Initialize log service (starts watcher immediately for session tracking)
   logService.initialize();
+  
+  // Initialize CMS service (preload cache and start file watching)
+  await cmsService.initialize();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  log.info('🛑 SIGTERM received, shutting down gracefully...');
+  await cmsService.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  log.info('🛑 SIGINT received, shutting down gracefully...');
+  await cmsService.shutdown();
+  process.exit(0);
 });

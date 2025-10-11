@@ -1,15 +1,17 @@
 const rconService = require('../services/rconService');
 const logService = require('../services/logService');
 const cacheService = require('../services/cacheService');
+const logger = require('../utils/logger');
 
 class SocketController {
   constructor() {
     this.lastData = { total: 0, players: [] };
+    this.log = logger.createLogger('SOCKET');
   }
 
   // Handle new client connection (initial data push)
   async handleConnection(socket, io) {
-    console.log("Client connected:", socket.id);
+    this.log.debug("Client connected:", socket.id);
 
     // Send cached logs to new client
     const cachedLogs = logService.getCachedLogs();
@@ -34,7 +36,7 @@ class SocketController {
     }
 
     socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
+      this.log.debug("Client disconnected:", socket.id);
       if (io.engine.clientsCount === 0) {
         // Clear io instance when no clients connected
         cacheService.setSocketIO(null);

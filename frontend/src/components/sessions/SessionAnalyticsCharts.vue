@@ -136,8 +136,7 @@ const props = defineProps({
 })
 
 // API Configuration
-const API_BASE = 'https://minestatus-backend.cle4r.my.id/api'
-// const API_BASE = 'http://localhost:3000/api'
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://minestatus-backend.cle4r.my.id'
 
 // Reactive data
 const chartData = ref({
@@ -369,10 +368,10 @@ async function loadChartData() {
     
     // Load all chart data in parallel and wait for all responses
     const [dailyResponse, hourlyResponse, durationResponse, topPlayersResponse] = await Promise.all([
-      fetch(`${API_BASE}/sessions/analytics/daily${timeParam}`),
-      fetch(`${API_BASE}/sessions/analytics/hourly${timeParam}`),
-      fetch(`${API_BASE}/sessions/analytics/duration${timeParam}`),
-      fetch(`${API_BASE}/sessions/analytics/top-players${topPlayersParam}`)
+      fetch(`${API_BASE}/api/sessions/analytics/daily${timeParam}`),
+      fetch(`${API_BASE}/api/sessions/analytics/hourly${timeParam}`),
+      fetch(`${API_BASE}/api/sessions/analytics/duration${timeParam}`),
+      fetch(`${API_BASE}/api/sessions/analytics/top-players${topPlayersParam}`)
     ])
 
     // Parse all responses in parallel
