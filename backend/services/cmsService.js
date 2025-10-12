@@ -260,42 +260,25 @@ class CmsService {
       // Parse frontmatter and markdown content
       const { data: metadata, content } = matter(fileContent);
       
-      // Get all image files in the folder (support common image extensions)
-      const imageFiles = files.filter(file => 
-        /\.(jpg|jpeg|png|gif|webp|svg|avif|bmp|tiff|ico)$/i.test(file)
-      );
-
-      // Helper to find actual filename from a markdown src (basename match, case-insensitive)
-      const resolveImageFilename = (src) => {
-        const srcName = path.basename(src).toLowerCase();
-        // Try exact match first
-        const found = imageFiles.find(img => img.toLowerCase() === srcName);
-        if (found) return found;
-
-        // Try matching by basename without extension
-        const srcBase = srcName.replace(/\.[^.]+$/, '');
-        const foundByBase = imageFiles.find(img => img.toLowerCase().replace(/\.[^.]+$/, '') === srcBase);
-        if (foundByBase) return foundByBase;
-
-        // Fallback to original basename (may point to external URL later)
-        return path.basename(src);
-      };
-
       // Process markdown content to fix image paths before converting to HTML
       const processedContent = content.replace(
         /!\[([^\]]*)\]\(([^)]+)\)/g,
         (match, alt, src) => {
-          // If it's a relative path (no protocol or leading slash), map to actual file if present
+          // If it's just a filename (no path), convert to full URL
           if (!src.startsWith('http') && !src.startsWith('/') && !src.includes('://')) {
-            const resolved = resolveImageFilename(src);
-            const fullUrl = `${process.env.DOMAIN || 'http://localhost:3000'}/api/cms/buildings/${folderName}/images/${encodeURIComponent(resolved)}`;
+            const fullUrl = `${process.env.DOMAIN || 'http://localhost:3000'}/api/cms/buildings/${folderName}/images/${src}`;
             return `![${alt}](${fullUrl})`;
           }
           return match;
         }
       );
-
+      
       const htmlContent = markedModule.marked.parse(processedContent);
+
+      // Get all image files in the folder
+      const imageFiles = files.filter(file => 
+        /\.(jpg|jpeg|png|gif|webp)$/i.test(file)
+      );
 
       // Determine thumbnail
       let thumbnail = null;
