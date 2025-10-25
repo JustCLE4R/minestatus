@@ -68,6 +68,9 @@ class Logger {
   log(level, context, message, ...args) {
     if (!this.shouldLog(level)) return;
     
+    // Don't print anything in production
+    if (!this.isDev) return;
+    
     const formattedMessage = this.formatMessage(level, context, message);
     
     switch (level) {

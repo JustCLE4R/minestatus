@@ -3,6 +3,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const morgan = require("morgan");
 
 // Utils
 const logger = require('./utils/logger');
@@ -11,6 +12,7 @@ const logger = require('./utils/logger');
 const rconService = require('./services/rconService');
 const logService = require('./services/logService');
 const cmsService = require('./services/cmsService');
+const blockAggregation = require('./services/aggregation/blockService');
 
 // Controllers
 const socketController = require('./controllers/socketController');
@@ -50,6 +52,12 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
+// HTTP request logging (only in non-production)
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // app.use(express.static('public')); // Serve static files
@@ -77,17 +85,22 @@ server.listen(PORT, async () => {
   
   // Initialize CMS service (preload cache and start file watching)
   await cmsService.initialize();
+  
+  // Initialize aggregation service (starts background cron jobs)
+  blockAggregation.initialize();
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', async () => {``
   log.info('🛑 SIGTERM received, shutting down gracefully...');
   await cmsService.shutdown();
+  blockAggregation.shutdown();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   log.info('🛑 SIGINT received, shutting down gracefully...');
   await cmsService.shutdown();
+  blockAggregation.shutdown();
   process.exit(0);
 });

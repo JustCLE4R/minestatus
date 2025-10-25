@@ -329,10 +329,25 @@
                       <template v-slot:prepend>
                         <v-icon color="grey-darken-1">mdi-package-variant</v-icon>
                       </template>
-                      <v-list-item-title>Materials</v-list-item-title>
-                      <v-list-item-subtitle class="font-weight-medium">
-                        {{ building.metadata.materials }}
-                      </v-list-item-subtitle>
+                        <div class="w-100">
+                          <v-list-item-title>Materials</v-list-item-title>
+                        <div class="">
+                          <div v-for="(material, index) in formatMaterialsDisplay(building.metadata.materials, showAllMaterials)" :key="index" :class="['v-list-item-subtitle', 'font-weight-medium', { 'mt-1': index > 0 }]">
+                            • {{ material }}
+                          </div>
+                          <v-btn 
+                            v-if="Array.isArray(building.metadata.materials) && building.metadata.materials.length > 1"
+                            variant="text" 
+                            size="x-small" 
+                            color="primary"
+                            @click="toggleMaterials"
+                            class="pa-0"
+                            style="min-width: auto; height: auto;"
+                          >
+                            {{ showAllMaterials ? 'Show less' : `See more (${building.metadata.materials.length - 1} more)` }}
+                          </v-btn>
+                        </div>
+                      </div>
                     </v-list-item>
 
                     <!-- Additional Information -->
@@ -464,6 +479,7 @@ const imageDialog = ref(false)
 const selectedImage = ref('')
 const shareButtonText = ref('Share Building')
 const shareButtonIcon = ref('mdi-share')
+const showAllMaterials = ref(false)
 
 // Methods
 const loadBuilding = async (slug) => {
@@ -616,6 +632,22 @@ const getDifficultyColor = (difficulty) => {
     case 'hard': return 'error'
     default: return 'info'
   }
+}
+
+const formatMaterialsDisplay = (materials, showAll = false) => {
+  if (!materials) return null
+  
+  const materialsArray = Array.isArray(materials) ? materials : [materials]
+  
+  if (showAll || materialsArray.length <= 1) {
+    return materialsArray
+  }
+  
+  return [materialsArray[0]] // Show only first material by default
+}
+
+const toggleMaterials = () => {
+  showAllMaterials.value = !showAllMaterials.value
 }
 
 const parseTags = (tags) => {
