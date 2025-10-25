@@ -19,7 +19,6 @@ const socketController = require('./controllers/socketController');
 
 // Routes
 const apiRoutes = require('./routes/api');
-const cmsRoutes = require('./routes/cms');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,10 +61,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // app.use(express.static('public')); // Serve static files
 
-
 // API Routes
 app.use('/api', apiRoutes);
-app.use('/api/cms', cmsRoutes);
 
 // Initialize services
 logService.setSocketIO(io);
