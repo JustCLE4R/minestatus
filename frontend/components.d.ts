@@ -9,7 +9,11 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppNavigation: typeof import('./src/components/AppNavigation.vue')['default']
+    BlockAnalyticsTab: typeof import('./src/components/insights/BlockAnalyticsTab.vue')['default']
+    BlockIcon: typeof import('./src/components/BlockIcon.vue')['default']
     OnlinePlayersCard: typeof import('./src/components/index/OnlinePlayersCard.vue')['default']
+    OverviewTab: typeof import('./src/components/insights/OverviewTab.vue')['default']
+    PlayerAnalyticsTab: typeof import('./src/components/insights/PlayerAnalyticsTab.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServerConsoleCard: typeof import('./src/components/index/ServerConsoleCard.vue')['default']

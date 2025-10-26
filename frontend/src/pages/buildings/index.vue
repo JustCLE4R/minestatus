@@ -6,8 +6,11 @@
         <v-card class="pa-6" elevation="3">
           <div class="d-flex justify-space-between align-center">
             <div>
-              <h1 class="text-h3 font-weight-bold mb-2">🏗️ Buildings Gallery</h1>
-              <p class="text-h6 text-medium-emphasis">
+              <h1 class="text-h3 font-weight-bold mb-2">
+                <v-icon icon="mdi-crane" size="64" class="mr-3" color="primary"></v-icon>
+                Buildings Gallery
+              </h1>
+              <p class="text-subtitle-1 text-medium-emphasis">
                 Explore amazing builds from our community
               </p>
             </div>

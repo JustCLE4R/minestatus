@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const morgan = require("morgan");
+const path = require("path");
 
 // Utils
 const logger = require('./utils/logger');
@@ -59,7 +60,10 @@ if (process.env.NODE_ENV !== 'production') {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(express.static('public')); // Serve static files
+app.use('/assets', express.static(path.join(process.cwd(), 'public/assets'), {
+  maxAge: '30d',
+  immutable: true
+}));
 
 // API Routes
 app.use('/api', apiRoutes);

@@ -60,4 +60,10 @@ typings/
 # next.js build output
 .next
 
+# CMS Building directories
 buildings/*
+!buildings/.gitkeep
+
+# Public assets blocks
+public/assets/blocks/*
+!public/assets/blocks/.gitkeep

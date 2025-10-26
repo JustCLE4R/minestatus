@@ -80,7 +80,13 @@ const menuItems = [
     title: 'Sessions',
     subtitle: 'Player activity',
     path: '/sessions',
-    icon: 'mdi-chart-timeline-variant'
+    icon: 'mdi-history'
+  },
+  {
+    title: 'Insights',
+    subtitle: 'Block statistics',
+    path: '/insights',
+    icon: 'mdi-chart-line'
   }
 ]
 </script>

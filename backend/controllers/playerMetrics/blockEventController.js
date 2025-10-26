@@ -139,7 +139,7 @@ class BlockEventController {
 
       const leaderboard = await PlayerBlockStats.findAll({
         where: {
-          blockType: { [Op.like]: `${blockType}` },
+          blockType: { [Op.like]: `%${blockType}%` },
           actionType
         },
         order: [['count', 'DESC']],
