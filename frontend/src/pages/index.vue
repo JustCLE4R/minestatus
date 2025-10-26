@@ -8,8 +8,8 @@
 
       <v-col cols="12" md="6" class="d-flex">
         <OnlinePlayersCard 
-          :total="total" 
-          :players="players" 
+          :total="socketStore.playerCount" 
+          :players="socketStore.playersList" 
           :playersWithSessions="playersWithSessions" 
           class="flex-fill" 
         />
@@ -19,59 +19,35 @@
         <!-- Second Row: Skills Leaderboard -->
         <v-row class="mb-4">
           <v-col cols="12">
-            <SkillsLeaderboardCard :skillsData="skillsData" />
+            <SkillsLeaderboardCard :skillsData="socketStore.skills" />
           </v-col>
         </v-row>
 
         <!-- Third Row: Server Console -->
         <v-row class="mb-4">
           <v-col cols="12">
-            <ServerConsoleCard :logs="logs" />
+            <ServerConsoleCard :logs="socketStore.logs" />
           </v-col>
         </v-row>
-
-    <!-- Toast Notifications -->
-    <ToastNotifications :toasts="toasts" />
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
-import { io } from "socket.io-client";
-import { useToasts } from '../composables/useToasts'
-import { usePlayerNotifications } from '../composables/usePlayerNotifications'
-
-// API Configuration
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://minestatus-backend.cle4r.my.id'
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { useSocketStore } from '@/stores/socket'
 
 // Import components
 import OnlinePlayersCard from "../components/index/OnlinePlayersCard.vue";
 import ServerConsoleCard from "../components/index/ServerConsoleCard.vue";
 import SkillsLeaderboardCard from "../components/index/SkillsLeaderboardCard.vue";
 import ServerStatusCard from "../components/index/ServerStatusCard.vue";
-import ToastNotifications from "../components/ToastNotifications.vue";
 
-// Use composables
-const { toasts } = useToasts()
-const { handlePlayersUpdate } = usePlayerNotifications()
+// Use socket store
+const socketStore = useSocketStore()
 
-// Reactive data
-const total = ref(0);
-const players = ref([]);
+// Local reactive data for session timers
 const playersWithSessions = ref([]);
-const logs = ref([]);
-const skillsData = ref([]);
 let sessionUpdateTimer = null;
-
-// Update page title based on player count
-watch(
-  total,
-  (newTotal) => {
-    const playerText = newTotal === 1 ? "Player" : "Players";
-    document.title = `Minestatus | ${newTotal} ${playerText} Online`;
-  },
-  { immediate: true }
-);
 
 // Session duration update timer
 function startSessionUpdateTimer() {
@@ -106,49 +82,20 @@ function stopSessionUpdateTimer() {
   }
 }
 
-// Socket.IO connection and event handlers
-onMounted(() => {
-  const socket = io(API_BASE); // set base URL manually
-
-  // Mock data for testing - 7 online players
-  // setTimeout(() => {
-  //   total.value = 7;
-  //   players.value = ["Steve", "Alex", "Notch", "Herobrine", "Creeper", "Bjir", "EnderDragon"];
-  //   previousPlayers.value = [...players.value];
-  //   initialized = true;
-  // }, 1000);
-
-  socket.on("players:update", (data) => {
-    // Handle player notifications using composable
-    handlePlayersUpdate(data)
+// Watch for changes in players data to update sessions
+import { watch } from 'vue'
+watch(() => socketStore.playersWithSessions, (newPlayersWithSessions) => {
+  if (newPlayersWithSessions) {
+    playersWithSessions.value = newPlayersWithSessions;
     
-    total.value = data.total;
-    players.value = data.players;
-
-    // Update session data if available
-    if (data.playersWithSessions) {
-      playersWithSessions.value = data.playersWithSessions;
-    }
-
     // Start timer to update session durations every minute
     if (!sessionUpdateTimer && playersWithSessions.value.length > 0) {
       startSessionUpdateTimer();
     }
-  });
+  }
+}, { immediate: true })
 
-  socket.on("skills:update", (data) => {
-    if (data && data.skills) {
-      skillsData.value = data.skills;
-    }
-  });
-
-  socket.on("server:log", (line) => {
-    logs.value.push(line);
-    if (logs.value.length > 200) {
-      logs.value.shift(); // keep only last 200 lines
-    }
-  });
-
+onMounted(() => {
   // Ensure scroll to bottom on initial mount
   nextTick(() => {
     const el = document.querySelector(".console-log");
@@ -156,10 +103,10 @@ onMounted(() => {
       el.scrollTop = el.scrollHeight;
     }
   });
-  
-  // Cleanup on component unmount
-  onBeforeUnmount(() => {
-    stopSessionUpdateTimer();
-  });
+});
+
+// Cleanup on component unmount
+onBeforeUnmount(() => {
+  stopSessionUpdateTimer();
 });
 </script>

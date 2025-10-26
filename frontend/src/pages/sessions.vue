@@ -42,9 +42,6 @@
           :loading="loading"
         />
 
-        <!-- Toast Notifications -->
-        <ToastNotifications :toasts="toasts" />
-
         <!-- Loading Overlay -->
         <v-overlay
           v-model="loading"
@@ -79,11 +76,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { io } from 'socket.io-client'
-
-// Import composables
-import { useToasts } from '../composables/useToasts'
-import { usePlayerNotifications } from '../composables/usePlayerNotifications'
+import { useSocketStore } from '@/stores/socket'
 
 // Import components
 import SessionPageHeader from '../components/sessions/SessionPageHeader.vue'
@@ -91,20 +84,14 @@ import SessionStatisticsCards from '../components/sessions/SessionStatisticsCard
 import SessionFilters from '../components/sessions/SessionFilters.vue'
 import SessionsTable from '../components/sessions/SessionsTable.vue'
 import SessionAnalyticsCharts from '../components/sessions/SessionAnalyticsCharts.vue'
-import ToastNotifications from '../components/ToastNotifications.vue'
 
-// Use composables
-const { toasts } = useToasts()
-const { handlePlayersUpdate } = usePlayerNotifications()
+// Use socket store
+const socketStore = useSocketStore()
 
 // API Configuration
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://minestatus-backend.cle4r.my.id'
 
-// Socket.IO connection
-let socket = null
-
 // Reactive Data
-const total = ref(0);
 const sessions = ref([])
 const stats = ref({})
 const activeSessionsCount = ref(0)
@@ -125,16 +112,6 @@ const activeOnly = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 const totalItems = ref(0)
-
-// Update page title based on player count
-watch(
-  total,
-  (newTotal) => {
-    const playerText = newTotal === 1 ? "Player" : "Players";
-    document.title = `Minestatus | ${newTotal} ${playerText} Online`;
-  },
-  { immediate: true }
-);
 
 // Watch for filter changes to reset pagination
 watch([timeFilter, playerFilter, activeOnly], () => {
@@ -247,37 +224,25 @@ async function refreshAll() {
 // Lifecycle
 onMounted(() => {
   refreshAll()
-  
-  // Initialize Socket.IO connection for real-time updates
-  const socket = io(API_BASE.replace('/api', ''))
-  
-  // Listen for player updates to refresh session data
-  socket.on('players:update', (data) => {
-    // Handle player notifications using composable
-    handlePlayersUpdate(data)
+})
+
+// Watch for player count changes to refresh data if real-time updates enabled
+watch(() => socketStore.playerCount, () => {
+  // Only refresh if real-time updates are enabled
+  if (realTimeUpdates.value) {
+    // Refresh stats and sessions when players join/leave
+    loadStats()
     
-    total.value = data.total;
-    
-    // Only refresh if real-time updates are enabled
-    if (realTimeUpdates.value) {
-      // Refresh stats and sessions when players join/leave
-      loadStats()
-      
-      // Only refresh sessions if we're viewing active sessions or recent data
-      if (activeOnly.value || currentPage.value === 1) {
-        loadSessions()
-      }
+    // Only refresh sessions if we're viewing active sessions or recent data
+    if (activeOnly.value || currentPage.value === 1) {
+      loadSessions()
     }
-  })
+  }
 })
 
 // Cleanup
 onBeforeUnmount(() => {
-  // Disconnect socket
-  if (socket) {
-    socket.disconnect()
-    socket = null
-  }
+  // No cleanup needed for Pinia store
 })
 </script>
 
