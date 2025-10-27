@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import { useSocketStore } from '@/stores/socket'
 
 // Import components
@@ -83,7 +83,6 @@ function stopSessionUpdateTimer() {
 }
 
 // Watch for changes in players data to update sessions
-import { watch } from 'vue'
 watch(() => socketStore.playersWithSessions, (newPlayersWithSessions) => {
   if (newPlayersWithSessions) {
     playersWithSessions.value = newPlayersWithSessions;

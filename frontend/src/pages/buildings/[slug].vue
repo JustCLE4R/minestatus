@@ -671,8 +671,6 @@ onMounted(() => {
     loadBuilding(route.params.slug)
   }
 })
-
-console.log(building)
 </script>
 
 <style scoped>

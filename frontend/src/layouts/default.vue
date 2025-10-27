@@ -40,17 +40,17 @@ function updatePageTitle() {
   // Add route-specific suffix if needed
   let routeTitle = ''
   switch (route.name) {
-    case 'sessions':
+    case '/dashboard/':
+      routeTitle = ' - Dashboard'
+      break
+    case '/sessions/':
       routeTitle = ' - Sessions'
       break
-    case 'insights':
+    case '/insights/':
       routeTitle = ' - Server Insights'
       break
-    case 'buildings':
+    case '/buildings/':
       routeTitle = ' - Buildings'
-      break
-    case 'building':
-      routeTitle = ' - Building Guide'
       break
     default:
       routeTitle = ''
