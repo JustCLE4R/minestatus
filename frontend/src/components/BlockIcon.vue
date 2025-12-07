@@ -51,7 +51,7 @@ const hasError = ref(false)
 // Computed image URL
 const imageUrl = computed(() => {
   if (hasError.value) return '/assets/blocks/unknown_block.png'
-  return `${props.cdnBase}/${props.block}.png`
+  return `${props.cdnBase}/${props.block.toLocaleLowerCase()}.png` //for some reason its work on windows and doesnt on linux if not toLowerCase
 })
 
 // Fallback jika gambar error

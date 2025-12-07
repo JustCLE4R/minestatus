@@ -30,10 +30,11 @@ const processBlockBreakAggregation = async () => {
       attributes: [
         'playerName',
         'block',
+        'world',
         [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
       where: { date: { [Op.gt]: lastAggregatedAt }, world: { [Op.ne]: 'plots' } },
-      group: ['playerName', 'block']
+      group: ['playerName', 'block', 'world']
     });
 
     if (newData.length === 0) {
@@ -98,10 +99,11 @@ const processBlockPlaceAggregation = async () => {
       attributes: [
         'playerName',
         'block',
+        'world',
         [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
       where: { date: { [Op.gt]: lastAggregatedAt }, world: { [Op.ne]: 'plots' } },
-      group: ['playerName', 'block']
+      group: ['playerName', 'block', 'world']
     });
 
     if (newData.length === 0) {
