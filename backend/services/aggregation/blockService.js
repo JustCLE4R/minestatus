@@ -49,13 +49,29 @@ const processBlockBreakAggregation = async () => {
       const count = parseInt(row.get('count'));
       totalBlocksProcessed += count;
 
-      await PlayerBlockStats.upsert({
-        playerName: row.playerName,
-        blockType: row.block,
-        world: row.world,
-        actionType: 'break',
-        count: sequelize.literal(`count + ${count}`)
+      // Check if record exists to handle insert vs update properly
+      const existing = await PlayerBlockStats.findOne({
+        where: {
+          playerName: row.playerName,
+          blockType: row.block,
+          world: row.world,
+          actionType: 'break'
+        }
       });
+
+      if (existing) {
+        // Record exists: increment the count
+        await existing.increment('count', { by: count });
+      } else {
+        // Record doesn't exist: create it with the count
+        await PlayerBlockStats.create({
+          playerName: row.playerName,
+          blockType: row.block,
+          world: row.world,
+          actionType: 'break',
+          count: count
+        });
+      }
     }
 
     // Update tracker
@@ -118,13 +134,29 @@ const processBlockPlaceAggregation = async () => {
       const count = parseInt(row.get('count'));
       totalBlocksProcessed += count;
 
-      await PlayerBlockStats.upsert({
-        playerName: row.playerName,
-        blockType: row.block,
-        world: row.world,
-        actionType: 'place',
-        count: sequelize.literal(`count + ${count}`)
+      // Check if record exists to handle insert vs update properly
+      const existing = await PlayerBlockStats.findOne({
+        where: {
+          playerName: row.playerName,
+          blockType: row.block,
+          world: row.world,
+          actionType: 'place'
+        }
       });
+
+      if (existing) {
+        // Record exists: increment the count
+        await existing.increment('count', { by: count });
+      } else {
+        // Record doesn't exist: create it with the count
+        await PlayerBlockStats.create({
+          playerName: row.playerName,
+          blockType: row.block,
+          world: row.world,
+          actionType: 'place',
+          count: count
+        });
+      }
     }
 
     // Update tracker
