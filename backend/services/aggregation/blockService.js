@@ -54,7 +54,6 @@ const processBlockBreakAggregation = async () => {
         where: {
           playerName: row.playerName,
           blockType: row.block,
-          world: row.world,
           actionType: 'break'
         }
       });
@@ -67,7 +66,6 @@ const processBlockBreakAggregation = async () => {
         await PlayerBlockStats.create({
           playerName: row.playerName,
           blockType: row.block,
-          world: row.world,
           actionType: 'break',
           count: count
         });
@@ -139,7 +137,6 @@ const processBlockPlaceAggregation = async () => {
         where: {
           playerName: row.playerName,
           blockType: row.block,
-          world: row.world,
           actionType: 'place'
         }
       });
@@ -152,7 +149,6 @@ const processBlockPlaceAggregation = async () => {
         await PlayerBlockStats.create({
           playerName: row.playerName,
           blockType: row.block,
-          world: row.world,
           actionType: 'place',
           count: count
         });
